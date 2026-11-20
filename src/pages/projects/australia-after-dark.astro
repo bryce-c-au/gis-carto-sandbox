@@ -1,0 +1,127 @@
+---
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const image = base + '/images/australia-after-dark.webp';
+---
+<!doctype html>
+<html lang="en-AU">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Explore Australia's night lights in an interactive adaptation of the Australia After Dark QGIS map." />
+    <link rel="icon" href={base + '/favicon.svg'} />
+    <title>Australia After Dark | GIS Carto Sandbox</title>
+  </head>
+  <body>
+    <main>
+      <header><a href={base + '/'}>Portfolio</a></header>
+      <section class="intro">
+        <p class="eyebrow">AUSTRALIA · NIGHT LIGHTS</p>
+        <h1>Australia After Dark</h1>
+        <p>Follow the lights from the coast into the interior. Zoom in to reveal regional centres and selected national parks.</p>
+      </section>
+      <section class="map-panel" aria-label="Interactive map of Australian night lights">
+        <div class="toolbar">
+          <div class="legend" aria-label="Map symbols">
+            <span><i class="city"></i> Capital city</span>
+            <span><i class="town"></i> Regional centre</span>
+            <span><i class="park"></i> National park</span>
+          </div>
+          <button id="reset-extent" type="button" disabled>Reset to Australia</button>
+        </div>
+        <div id="night-map" data-image={image} aria-label="Australia at night. Drag to pan or use the zoom buttons.">
+          <img class="fallback" src={image} alt="Satellite image of Australia at night, showing bright coastal cities and a mostly dark interior" />
+        </div>
+        <p class="caption" id="map-scale" role="status">National view</p>
+      </section>
+      <section class="notes">
+        <h2>Reading the map</h2>
+        <p>This web map reuses the Australian raster from my original QGIS project. It shows artificial lights observed from orbit in 2016. It does not measure sky brightness at ground level or indicate current stargazing conditions. Park markers indicate approximate locations.</p>
+        <p>Imagery: <a href="https://science.nasa.gov/earth/earth-observatory/earth-at-night/maps/">NASA Earth Observatory, Black Marble 2016</a>, Suomi NPP VIIRS. Australian crop reprojected to Web Mercator. Map built with <a href="https://leafletjs.com/">Leaflet</a>.</p>
+      </section>
+    </main>
+    <script>
+      import L from 'leaflet';
+      import 'leaflet/dist/leaflet.css';
+      import { capitals, centres, parks, type Place } from '../../data/australia-after-dark';
+
+      const container = document.querySelector<HTMLElement>('#night-map')!;
+      const reset = document.querySelector<HTMLButtonElement>('#reset-extent')!;
+      const status = document.querySelector<HTMLElement>('#map-scale')!;
+      const projection = L.CRS.EPSG3857;
+      const rasterBounds = L.latLngBounds(
+        projection.unproject(L.point(12467782.96884664, -5465367.383794817)),
+        projection.unproject(L.point(17143455.090428762, -1118550.8661030869)),
+      );
+      const australia = L.latLngBounds([-44, 112.5], [-10, 154]);
+      const map = L.map(container, {
+        minZoom: 2, maxZoom: 10, zoomSnap: 0.25,
+        maxBounds: rasterBounds.pad(0.55), maxBoundsViscosity: 0.75,
+        scrollWheelZoom: false,
+      });
+      const resetView = () => map.fitBounds(australia, { padding: [18, 18], animate: false });
+      resetView();
+      reset.disabled = false;
+      reset.addEventListener('click', resetView);
+      L.control.scale({ imperial: false }).addTo(map);
+      L.imageOverlay(container.dataset.image!, rasterBounds).on('load', () => {
+        container.classList.add('has-map');
+      }).on('error', () => {
+        status.textContent = 'Night lights imagery could not be loaded.';
+      }).addTo(map);
+
+      function placeLayer(places: Place[], kind: string, radius: number, color: string) {
+        return L.layerGroup(places.map(([name, lat, lng]) => L.circleMarker([lat, lng], {
+          radius, color, weight: 1.5, fillOpacity: 0.85, interactive: false,
+        }).bindTooltip(name, {
+          permanent: true, direction: 'right', offset: [radius + 2, 0],
+          className: 'place-label ' + kind,
+        })));
+      }
+
+      placeLayer(capitals, 'capital-label', 4, '#ffe3ac').addTo(map);
+      const regionalLayer = placeLayer(centres, 'regional-label', 3, '#a8cde4');
+      const parkLayer = placeLayer(parks, 'park-label', 4, '#87dfb6');
+      function updateLabels() {
+        const zoom = map.getZoom();
+        if (zoom >= 5) regionalLayer.addTo(map); else regionalLayer.remove();
+        if (zoom >= 6.5) parkLayer.addTo(map); else parkLayer.remove();
+        status.textContent = zoom >= 6.5
+          ? 'Local view · selected national parks visible'
+          : zoom >= 5 ? 'Regional view · zoom in for national parks'
+          : 'National view · zoom in for regional centres';
+      }
+      map.on('zoomend', updateLabels);
+      updateLabels();
+    </script>
+    <style>
+      :global(*) { box-sizing: border-box; }
+      :global(body) { margin: 0; background: #101719; color: #f0eadd; font: 1rem/1.6 Arial, sans-serif; }
+      main { max-width: 1440px; margin: auto; padding: 0 5vw 64px; }
+      header { padding: 20px 0; border-bottom: 1px solid #45504d; }
+      a { color: #edc08e; }
+      .intro { margin: 36px 0 28px; }
+      .intro p, .notes p { max-width: 740px; color: #c6cfcb; }
+      .intro .eyebrow { color: #d6a66c; font-size: .875rem; font-weight: bold; letter-spacing: .14em; }
+      h1 { font: 400 clamp(2.8rem, 7vw, 6.5rem)/1 Georgia, serif; margin: 14px 0; }
+      h2 { font: 400 2rem Georgia, serif; }
+      .map-panel { border: 1px solid #45504d; background: #182326; }
+      .toolbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; padding: 12px 16px; }
+      .legend { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: .875rem; }
+      .legend i { display: inline-block; width: .55rem; height: .55rem; border-radius: 50%; margin-right: 5px; }
+      .city { background: #ffe3ac; } .town { background: #a8cde4; } .park { background: #87dfb6; }
+      button { font: inherit; background: #25383c; color: #f0eadd; border: 1px solid #688181; border-radius: 4px; padding: 6px 12px; cursor: pointer; }
+      #night-map { height: clamp(400px, 67vh, 760px); background: #080c14; isolation: isolate; position: relative; }
+      .fallback { position: absolute; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+      .has-map .fallback { display: none; }
+      .caption { margin: 0; padding: 8px 16px; color: #c6cfcb; font-size: .875rem; }
+      .notes { margin-top: 40px; }
+      #night-map :global(.place-label) {
+        color: #ffe3ac; background: #0b101a; border: 0; box-shadow: none;
+        border-radius: 3px; padding: 1px 4px; font-size: 12px; font-weight: 700;
+      }
+      #night-map :global(.place-label::before) { display: none; }
+      #night-map :global(.regional-label) { color: #a8cde4; }
+      #night-map :global(.park-label) { color: #87dfb6; }
+    </style>
+  </body>
+</html>

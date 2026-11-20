@@ -1,6 +1,6 @@
 ---
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
-const image = base + '/images/australia-after-dark.webp';
+const image = base + '/images/australia-night-oceans.webp';
 ---
 <!doctype html>
 <html lang="en-AU">
@@ -35,8 +35,8 @@ const image = base + '/images/australia-after-dark.webp';
       </section>
       <section class="notes">
         <h2>Reading the map</h2>
-        <p>This web map reuses the Australian raster from my original QGIS project. It shows artificial lights observed from orbit in 2016. It does not measure sky brightness at ground level or indicate current stargazing conditions. Park markers indicate approximate locations.</p>
-        <p>Imagery: <a href="https://science.nasa.gov/earth/earth-observatory/earth-at-night/maps/">NASA Earth Observatory, Black Marble 2016</a>, Suomi NPP VIIRS. Australian crop reprojected to Web Mercator. Map built with <a href="https://leafletjs.com/">Leaflet</a>.</p>
+        <p>This web map builds on my original QGIS project and extends the imagery into the oceans around Australia. It shows artificial lights observed from orbit in 2016. It does not measure sky brightness at ground level or indicate current stargazing conditions. Park markers indicate approximate locations.</p>
+        <p>Imagery: <a href="https://science.nasa.gov/earth/earth-observatory/earth-at-night/maps/">NASA Earth Observatory, Black Marble 2016</a>, Suomi NPP VIIRS via NASA GIBS. Map built with <a href="https://leafletjs.com/">Leaflet</a>.</p>
       </section>
     </main>
     <script>
@@ -49,14 +49,16 @@ const image = base + '/images/australia-after-dark.webp';
       const status = document.querySelector<HTMLElement>('#map-scale')!;
       const projection = L.CRS.EPSG3857;
       const rasterBounds = L.latLngBounds(
-        projection.unproject(L.point(12467782.96884664, -5465367.383794817)),
-        projection.unproject(L.point(17143455.090428762, -1118550.8661030869)),
+        projection.unproject(L.point(9500000, -6500000)),
+        projection.unproject(L.point(19000000, -450000)),
       );
-      const australia = L.latLngBounds([-47, 106], [-8, 160]);
+      const australia = L.latLngBounds([-49, 100], [-7, 165]);
       const map = L.map(container, {
         minZoom: 2, maxZoom: 10, zoomSnap: 0.25,
         maxBounds: rasterBounds.pad(0.55), maxBoundsViscosity: 0.75,
         scrollWheelZoom: true,
+        wheelPxPerZoomLevel: 40,
+        wheelDebounceTime: 20,
         touchZoom: true,
       });
       const resetView = () => map.fitBounds(australia, { padding: [18, 18], animate: false });

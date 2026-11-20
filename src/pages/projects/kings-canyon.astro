@@ -1,0 +1,99 @@
+---
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const hero = base + '/images/kings-canyon-hero-4k.png';
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Explore a 3D cartographic cutaway of Kings Canyon in Watarrka National Park." />
+    <title>Kings Canyon | Cartographic portfolio</title>
+    <link rel="icon" href={base + '/favicon.svg'} />
+  </head>
+  <body>
+    <header class="top"><a href={base + '/'} class="back">← Portfolio</a><span>CARTOGRAPHIC FIELD STUDIES</span><span class="issue">01 / 2026</span></header>
+    <main>
+      <section class="heading"><div><p class="eyebrow">WATARRKA NATIONAL PARK · NORTHERN TERRITORY</p><h1>Kings Canyon</h1></div><p class="dek">An isometric cutaway of the George Gill Range, combining elevation data with a mosaic of imagery over the Northern Territory.</p></section>
+      <section class="viewer-section" aria-label="Interactive Kings Canyon terrain model">
+        <div id="viewer" class="viewer" tabindex="0" aria-label="3D Kings Canyon terrain. Drag to orbit, scroll to zoom, right drag to pan.">
+          <img id="model-fallback" class="fallback" src={hero} alt="Rendered aerial textured cutaway of Kings Canyon" />
+          <div id="model-status" class="status" role="status">Loading 3D terrain…</div>
+        </div>
+        <div class="viewer-bar"><div class="hint">Drag to orbit <span>·</span> Scroll to zoom <span>·</span> Right drag to pan</div><div class="actions"><button id="reset-camera" type="button">Reset view</button><button id="toggle-fullscreen" type="button">Fullscreen</button></div></div>
+      </section>
+      <section class="story"><div><p class="eyebrow">THE TERRAIN</p><h2>A canyon in context</h2></div><div><p>This 6 × 4 km block places Kings Canyon within the surrounding sandstone landscape. The relief is shown at 1.5× vertical exaggeration so the landform reads clearly from a distance.</p><p>The geological layers in the cut face are schematic. Roads, trails, and the creek are mapped references, not current access or navigation guidance.</p><div class="facts"><div><b>6 × 4 km</b><span>Terrain extent</span></div><div><b>30 m</b><span>Native elevation scale</span></div><div><b>1.5×</b><span>Vertical display</span></div></div></div></section>
+      <section class="sources"><h2>Sources & credits</h2><p>Elevation: Copernicus DEM GLO-30, adapted from Copernicus WorldDEM-30 © DLR e.V. and © Airbus Defence and Space GmbH, provided under COPERNICUS by the European Union and ESA. Roads, walks, creek and place references: © OpenStreetMap contributors (ODbL). Geological interpretation: Northern Territory Government, Watarrka geology sheet.</p><p>This study is not a navigation or current access map.</p></section>
+    </main>
+    <script>
+      import * as THREE from 'three';
+      import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+      import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+      import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+
+      const viewer = document.querySelector<HTMLDivElement>('#viewer')!;
+      const fallback = document.querySelector<HTMLImageElement>('#model-fallback')!;
+      const status = document.querySelector<HTMLDivElement>('#model-status')!;
+      const reset = document.querySelector<HTMLButtonElement>('#reset-camera')!;
+      const fullscreen = document.querySelector<HTMLButtonElement>('#toggle-fullscreen')!;
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color('#0c1113');
+      const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 1000);
+      const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.25;
+      renderer.setSize(viewer.clientWidth, viewer.clientHeight);
+      viewer.appendChild(renderer.domElement);
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.07;
+      controls.minDistance = 18;
+      controls.maxDistance = 220;
+      controls.maxPolarAngle = Math.PI * 0.49;
+      controls.screenSpacePanning = true;
+      scene.add(new THREE.HemisphereLight(0xeaf2ff, 0x76543e, 2.7));
+      const key = new THREE.DirectionalLight(0xffdcba, 2.4);
+      key.position.set(-25, 70, 35); scene.add(key);
+      const rim = new THREE.DirectionalLight(0xb9d9ef, 1.1);
+      rim.position.set(70, 40, -25); scene.add(rim);
+      let homePosition = new THREE.Vector3();
+      let homeTarget = new THREE.Vector3();
+      let ready = false;
+      function render() { controls.update(); renderer.render(scene, camera); requestAnimationFrame(render); }
+      function resize() { const w = viewer.clientWidth, h = viewer.clientHeight; if (!w || !h) return; camera.aspect = w / h; camera.updateProjectionMatrix(); renderer.setSize(w, h); }
+      new ResizeObserver(resize).observe(viewer);
+      function resetView() { if (!ready) return; camera.position.copy(homePosition); controls.target.copy(homeTarget); controls.update(); }
+      reset.addEventListener('click', resetView);
+      fullscreen.addEventListener('click', async () => { if (document.fullscreenElement === viewer) await document.exitFullscreen(); else await viewer.requestFullscreen(); });
+      document.addEventListener('fullscreenchange', () => { fullscreen.textContent = document.fullscreenElement === viewer ? 'Exit fullscreen' : 'Fullscreen'; resize(); });
+      const draco = new DRACOLoader();
+      const assetBase = import.meta.env.BASE_URL.replace(/\/$/, '');
+      draco.setDecoderPath(assetBase + '/draco/');
+      const loader = new GLTFLoader();
+      loader.setDRACOLoader(draco);
+      loader.load(assetBase + '/models/kings-canyon.glb', (gltf) => {
+        const model = gltf.scene;
+        scene.add(model);
+        const box = new THREE.Box3().setFromObject(model);
+        const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
+        homeTarget.copy(center);
+        homePosition.copy(center).add(new THREE.Vector3(-size.x * 1.02, Math.max(size.x, size.z) * .82, size.z * 1.48));
+        controls.target.copy(homeTarget);
+        camera.position.copy(homePosition);
+        camera.near = .1; camera.far = 500; camera.updateProjectionMatrix();
+        controls.update(); ready = true;
+        draco.dispose();
+        fallback.classList.add('loaded');
+        status.textContent = '3D terrain ready';
+        window.setTimeout(() => status.classList.add('hidden'), 1800);
+      }, (event) => { if (event.lengthComputable && event.total) status.textContent = `Loading 3D terrain… ${Math.round(event.loaded / event.total * 100)}%`; }, () => { status.textContent = '3D model unavailable. Showing the original render.'; });
+      resize(); render();
+    </script>
+    <style>
+      :global(*){box-sizing:border-box}:global(body){margin:0;background:#11191b;color:#f0eadd;font-family:Inter,Arial,sans-serif}:global(a){color:inherit}.top{height:74px;padding:0 5vw;border-bottom:1px solid #3a4846;display:flex;align-items:center;justify-content:space-between;font-size:.82rem;letter-spacing:.16em;color:#aab5ae}.back{text-decoration:none;color:#e5bb89;font-size:1rem;letter-spacing:0}.back:hover{text-decoration:underline}main{max-width:1600px;margin:auto;padding:0 5vw 80px}.heading{display:flex;justify-content:space-between;align-items:end;gap:50px;padding:52px 0 35px}.eyebrow{color:#d5a873;font-weight:700;font-size:.82rem;letter-spacing:.17em}.heading h1{font:400 clamp(3.5rem,8vw,7.5rem)/.95 Georgia,serif;letter-spacing:-.05em;margin:17px 0 0}.dek{max-width:390px;color:#bbc6bf;line-height:1.55;font-size:1.1rem}.viewer-section{border:1px solid #45514c;background:#0b1012}.viewer{height:min(68vw,720px);min-height:420px;position:relative;overflow:hidden}.viewer:fullscreen{height:100vh}.viewer canvas{display:block;width:100%;height:100%}.fallback{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#080b0c;z-index:2;transition:opacity .5s}.fallback.loaded{opacity:0;pointer-events:none}.status{position:absolute;left:22px;bottom:20px;background:#101819dd;color:#f3e8d7;padding:10px 15px;z-index:3;font-size:.9rem}.status.hidden{display:none}.viewer-bar{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:12px 20px;border-top:1px solid #45514c;color:#aab5ae;font-size:.9rem}.hint span{color:#d2a375;padding:0 7px}.actions{display:flex;gap:9px}.actions button{color:#eed9bd;background:#263432;border:1px solid #566760;padding:10px 16px;font:inherit;cursor:pointer;white-space:nowrap}.actions button:hover,.actions button:focus-visible{background:#3a4c45;outline-color:#edc293}.story{display:grid;grid-template-columns:1fr 1.25fr;gap:8vw;padding:85px 0;border-bottom:1px solid #3a4846}.story h2,.sources h2{font:400 clamp(2.5rem,5vw,4.5rem)/1.05 Georgia,serif;margin:12px 0}.story p,.sources p{color:#bdc8c0;line-height:1.7;font-size:1.05rem}.facts{display:flex;gap:35px;margin-top:40px}.facts div{display:flex;flex-direction:column;gap:8px}.facts b{font:400 1.7rem Georgia,serif;color:#f0d0a8}.facts span{color:#aab5ae;font-size:.85rem}.sources{max-width:950px;padding-top:60px}.sources h2{font-size:2.5rem}.sources p{font-size:.9rem}@media(max-width:800px){.top{padding:0 20px}.top>span:not(.issue){display:none}main{padding:0 20px 60px}.heading{display:block;padding:40px 0 28px}.dek{margin-top:25px}.viewer{height:65vh;min-height:350px}.viewer-bar{display:block}.hint{line-height:1.5;margin-bottom:12px}.actions button{flex:1}.story{grid-template-columns:1fr;gap:10px;padding:55px 0}.facts{flex-wrap:wrap;gap:25px}}
+    </style>
+  </body>
+</html>

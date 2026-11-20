@@ -1,13 +1,15 @@
 ---
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 const image = base + '/images/australia-night-oceans.webp';
+const atlasPreview = base + '/images/sky-atlas-preview.png';
+const atlasTiles = base + '/tiles/sky-atlas/{z}/{x}/{y}.webp';
 ---
 <!doctype html>
 <html lang="en-AU">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="Explore Australia's night lights in an interactive adaptation of the Australia After Dark QGIS map." />
+    <meta name="description" content="Explore Australia's modelled artificial sky brightness in an interactive adaptation of the Dark Sky QGIS project." />
     <link rel="icon" href={base + '/favicon.svg'} />
     <title>Australia After Dark | GIS Carto Sandbox</title>
   </head>
@@ -15,8 +17,9 @@ const image = base + '/images/australia-night-oceans.webp';
     <main>
       <header><a href={base + '/'}>Portfolio</a></header>
       <section class="intro">
-        <p class="eyebrow">AUSTRALIA · NIGHT LIGHTS</p>
-        <h1>Australia After Dark</h1>
+        <p class="eyebrow">AUSTRALIA · DARK SKIES</p>
+        <h1>Where the stars still win</h1>
+        <p class="subtitle">Australia after dark</p>
         <p>Drag to pan. Scroll, pinch, or use + and − to zoom in and reveal regional centres and selected national parks.</p>
       </section>
       <section class="map-panel" aria-label="Interactive map of Australian night lights">
@@ -26,17 +29,20 @@ const image = base + '/images/australia-night-oceans.webp';
             <span><i class="town"></i> Regional centre</span>
             <span><i class="park"></i> National park</span>
           </div>
+          <div class="map-actions"><button id="map-mode" type="button">Show satellite lights</button>
           <button id="reset-extent" type="button" disabled>Reset to Australia</button>
+          </div>
         </div>
-        <div id="night-map" data-image={image} aria-label="Australia at night. Drag to pan or use the zoom buttons.">
-          <img class="fallback" src={image} alt="Satellite image of Australia at night, showing bright coastal cities and a mostly dark interior" />
+        <div id="night-map" data-image={image} data-atlas={atlasTiles} aria-label="Modelled artificial sky brightness across Australia. Drag to pan or use the zoom buttons.">
+          <img class="fallback" src={atlasPreview} alt="Coloured map of modelled artificial sky brightness across Australia" />
         </div>
         <p class="caption" id="map-scale" role="status">National view</p>
+        <div class="sky-key" aria-label="Artificial sky brightness from darkest to brightest"><strong>ARTIFICIAL SKY BRIGHTNESS</strong><div class="swatches"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="key-ends"><span>Near-natural</span><span>Brightest</span></div></div>
       </section>
       <section class="notes">
         <h2>Reading the map</h2>
-        <p>This web map builds on my original QGIS project and extends the imagery into the oceans around Australia. It shows artificial lights observed from orbit in 2016. It does not measure sky brightness at ground level or indicate current stargazing conditions. Park markers indicate approximate locations.</p>
-        <p>Imagery: <a href="https://science.nasa.gov/earth/earth-observatory/earth-at-night/maps/">NASA Earth Observatory, Black Marble 2016</a>, Suomi NPP VIIRS via NASA GIBS. The national view uses a compact overview and closer views load more detailed satellite tiles. Individual streets are below the resolution of this imagery. Map built with <a href="https://leafletjs.com/">Leaflet</a>.</p>
+        <p>The default map uses my original QGIS Dark Sky project: modelled artificial zenith sky brightness from the 2016 World Atlas. The source raster is about 1 km per pixel, served here as local tiles so it stays detailed while panning and zooming. Black represents near-natural modelled skies. Park markers indicate approximate locations. This historical model does not describe current viewing conditions.</p>
+        <p>Sky brightness data: <a href="https://doi.org/10.5880/GFZ.1.4.2016.001">Falchi et al. (2016), New World Atlas of Artificial Night Sky Brightness</a>, <a href="https://creativecommons.org/licenses/by-nc/4.0/">CC BY-NC 4.0</a>. Satellite option: <a href="https://science.nasa.gov/earth/earth-observatory/earth-at-night/maps/">NASA Black Marble 2016</a> via NASA GIBS. Map built with <a href="https://leafletjs.com/">Leaflet</a>.</p>
       </section>
     </main>
     <script>
@@ -46,6 +52,7 @@ const image = base + '/images/australia-night-oceans.webp';
 
       const container = document.querySelector<HTMLElement>('#night-map')!;
       const reset = document.querySelector<HTMLButtonElement>('#reset-extent')!;
+      const mode = document.querySelector<HTMLButtonElement>('#map-mode')!;
       const status = document.querySelector<HTMLElement>('#map-scale')!;
       const projection = L.CRS.EPSG3857;
       const rasterBounds = L.latLngBounds(
@@ -54,7 +61,7 @@ const image = base + '/images/australia-night-oceans.webp';
       );
       const australia = L.latLngBounds([-49, 100], [-7, 165]);
       const map = L.map(container, {
-        minZoom: 2, maxZoom: 10, zoomSnap: 0.25,
+        minZoom: 2, maxZoom: 8, zoomSnap: 0.25,
         maxBounds: rasterBounds.pad(0.55), maxBoundsViscosity: 0.75,
         scrollWheelZoom: true,
         wheelPxPerZoomLevel: 40,
@@ -66,11 +73,17 @@ const image = base + '/images/australia-night-oceans.webp';
       reset.disabled = false;
       reset.addEventListener('click', resetView);
       L.control.scale({ imperial: false }).addTo(map);
-      L.imageOverlay(container.dataset.image!, rasterBounds).on('load', () => {
+      const satelliteOverview = L.imageOverlay(container.dataset.image!, rasterBounds).on('load', () => {
         container.classList.add('has-map');
       }).on('error', () => {
-        status.textContent = 'Night lights imagery could not be loaded.';
-      }).addTo(map);
+        status.textContent = 'Satellite imagery could not be loaded.';
+      });
+
+      const skyAtlas = L.tileLayer(container.dataset.atlas!, {
+        minZoom: 3, maxNativeZoom: 8, maxZoom: 8,
+        bounds: L.latLngBounds([-44.8, 112.9], [-9.2, 159.2]), noWrap: true,
+        attribution: 'Falchi et al. 2016 · CC BY-NC 4.0',
+      }).on('load', () => container.classList.add('has-map')).addTo(map);
 
       const detailPane = map.createPane('night-detail');
       detailPane.style.zIndex = '350';
@@ -80,8 +93,24 @@ const image = base + '/images/australia-night-oceans.webp';
       const nightDetail = L.tileLayer(
         'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_Black_Marble/default/2016-01-01/GoogleMapsCompatible_Level8/{z}/{y}/{x}.png',
         { pane: 'night-detail', minZoom: 6, maxNativeZoom: 8, maxZoom: 10, bounds: rasterBounds, noWrap: true },
-      ).addTo(map);
+      );
       nightDetail.on('tileerror', ({ tile }) => { tile.style.visibility = 'hidden'; });
+      let satellite = false;
+      mode.addEventListener('click', () => {
+        satellite = !satellite;
+        if (satellite) {
+          map.setMaxZoom(10);
+          map.removeLayer(skyAtlas);
+          satelliteOverview.addTo(map);
+          nightDetail.addTo(map);
+        } else {
+          map.setMaxZoom(8);
+          map.removeLayer(nightDetail);
+          map.removeLayer(satelliteOverview);
+          skyAtlas.addTo(map);
+        }
+        mode.textContent = satellite ? 'Show sky brightness' : 'Show satellite lights';
+      });
 
       function placeLayer(places: Place[], kind: string, radius: number, color: string) {
         return L.layerGroup(places.map(([name, lat, lng]) => L.circleMarker([lat, lng], {
@@ -121,6 +150,8 @@ const image = base + '/images/australia-night-oceans.webp';
       .map-panel { border: 1px solid #45504d; background: #182326; }
       .toolbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; padding: 12px 16px; }
       .legend { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: .875rem; }
+      .map-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+      .subtitle { color: #83d7df !important; font-weight: 700; font-size: 1.5rem; margin: 4px 0; }
       .legend i { display: inline-block; width: .55rem; height: .55rem; border-radius: 50%; margin-right: 5px; }
       .city { background: #ffe3ac; } .town { background: #a8cde4; } .park { background: #87dfb6; }
       button { font: inherit; background: #25383c; color: #f0eadd; border: 1px solid #688181; border-radius: 4px; padding: 6px 12px; cursor: pointer; }
@@ -128,6 +159,11 @@ const image = base + '/images/australia-night-oceans.webp';
       .fallback { position: absolute; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
       .has-map .fallback { display: none; }
       .caption { margin: 0; padding: 8px 16px; color: #c6cfcb; font-size: .875rem; }
+      .sky-key { padding: 12px 16px 18px; font-size: .8rem; }
+      .swatches { display: flex; height: 14px; margin-top: 8px; border: 1px solid #55606b; }
+      .swatches i { flex: 1; }
+      .swatches i:nth-child(1) { background: #050505; } .swatches i:nth-child(2) { background: #74747e; } .swatches i:nth-child(3) { background: #173f96; } .swatches i:nth-child(4) { background: #00a66f; } .swatches i:nth-child(5) { background: #ebdc05; } .swatches i:nth-child(6) { background: #f12d20; } .swatches i:nth-child(7) { background: #e58bd3; }
+      .key-ends { display: flex; justify-content: space-between; }
       .notes { margin-top: 40px; }
       #night-map :global(.place-label) {
         color: #ffe3ac; background: #0b101a; border: 0; box-shadow: none;

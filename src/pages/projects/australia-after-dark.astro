@@ -3,6 +3,8 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 const image = base + '/images/australia-night-oceans.webp';
 const atlasPreview = base + '/images/sky-atlas-preview.png';
 const atlasTiles = base + '/tiles/sky-atlas/{z}/{x}/{y}.webp';
+const parkBoundariesUrl = base + '/data/selected-national-parks.geojson';
+const roadsUrl = base + '/data/major-roads.geojson';
 ---
 <!doctype html>
 <html lang="en-AU">
@@ -28,12 +30,14 @@ const atlasTiles = base + '/tiles/sky-atlas/{z}/{x}/{y}.webp';
             <span><i class="city"></i> Capital city</span>
             <span><i class="town"></i> Regional centre</span>
             <span><i class="park"></i> National park</span>
+            <span><i class="park-boundary"></i> Park boundary</span>
+            <span><i class="road"></i> Major road</span>
           </div>
           <div class="map-actions"><button id="map-mode" type="button">Show satellite lights</button>
           <button id="reset-extent" type="button" disabled>Reset to Australia</button>
           </div>
         </div>
-        <div id="night-map" data-image={image} data-atlas={atlasTiles} aria-label="Modelled artificial sky brightness across Australia. Drag to pan or use the zoom buttons.">
+        <div id="night-map" data-image={image} data-atlas={atlasTiles} data-parks={parkBoundariesUrl} data-roads={roadsUrl} aria-label="Modelled artificial sky brightness across Australia with selected park boundaries and major roads. Drag to pan or use the zoom buttons.">
           <img class="fallback" src={atlasPreview} alt="Coloured map of modelled artificial sky brightness across Australia" />
         </div>
         <p class="caption" id="map-scale" role="status">National view</p>
@@ -41,8 +45,8 @@ const atlasTiles = base + '/tiles/sky-atlas/{z}/{x}/{y}.webp';
       </section>
       <section class="notes">
         <h2>Reading the map</h2>
-        <p>The default map uses my original QGIS Dark Sky project: modelled artificial zenith sky brightness from the 2016 World Atlas. The source raster is about 1 km per pixel, served here as local tiles so it stays detailed while panning and zooming. Black represents near-natural modelled skies. Park markers indicate approximate locations. This historical model does not describe current viewing conditions.</p>
-        <p>Sky brightness data: <a href="https://doi.org/10.5880/GFZ.1.4.2016.001">Falchi et al. (2016), New World Atlas of Artificial Night Sky Brightness</a>, <a href="https://creativecommons.org/licenses/by-nc/4.0/">CC BY-NC 4.0</a>. Satellite option: <a href="https://science.nasa.gov/earth/earth-observatory/earth-at-night/maps/">NASA Black Marble 2016</a> via NASA GIBS. Map built with <a href="https://leafletjs.com/">Leaflet</a>.</p>
+        <p>The default map uses my original QGIS Dark Sky project: modelled artificial zenith sky brightness from the 2016 World Atlas. The source raster is about 1 km per pixel, served here as local tiles so it stays detailed while panning and zooming. Black represents near-natural modelled skies. At closer scales, selected park boundaries and a generalised major road network provide context. Park markers indicate approximate locations; the Carnarvon Gorge marker sits within the larger Carnarvon National Park. This historical model does not describe current viewing conditions.</p>
+        <p>Sky brightness data: <a href="https://doi.org/10.5880/GFZ.1.4.2016.001">Falchi et al. (2016), New World Atlas of Artificial Night Sky Brightness</a>, <a href="https://creativecommons.org/licenses/by-nc/4.0/">CC BY-NC 4.0</a>. Park boundaries: <a href="https://www.dcceew.gov.au/environment/land/nrs/science/capad">CAPAD 2024</a>, Commonwealth of Australia. Roads: <a href="https://www.naturalearthdata.com/downloads/10m-cultural-vectors/roads/">Natural Earth 1:10m</a>, public domain. Satellite option: <a href="https://science.nasa.gov/earth/earth-observatory/earth-at-night/maps/">NASA Black Marble 2016</a> via NASA GIBS. Map built with <a href="https://leafletjs.com/">Leaflet</a>.</p>
       </section>
     </main>
     <script>
@@ -95,6 +99,17 @@ const atlasTiles = base + '/tiles/sky-atlas/{z}/{x}/{y}.webp';
         { pane: 'night-detail', minZoom: 6, maxNativeZoom: 8, maxZoom: 10, bounds: rasterBounds, noWrap: true },
       );
       nightDetail.on('tileerror', ({ tile }) => { tile.style.visibility = 'hidden'; });
+      const roadsLayer = L.geoJSON(undefined, {
+        style: { color: '#d5cfba', weight: 1.1, opacity: 0.55 }, interactive: false,
+      });
+      const parkBoundaries = L.geoJSON(undefined, {
+        style: { color: '#86e1b6', weight: 1.5, opacity: 0.9, fillOpacity: 0, dashArray: '5 4' },
+        onEachFeature(feature, layer) {
+          if (feature.properties?.NAME) layer.bindPopup(feature.properties.NAME + ' National Park');
+        },
+      });
+      fetch(container.dataset.roads!).then(response => response.json()).then(data => roadsLayer.addData(data));
+      fetch(container.dataset.parks!).then(response => response.json()).then(data => parkBoundaries.addData(data));
       let satellite = false;
       mode.addEventListener('click', () => {
         satellite = !satellite;
@@ -126,6 +141,8 @@ const atlasTiles = base + '/tiles/sky-atlas/{z}/{x}/{y}.webp';
       const parkLayer = placeLayer(parks, 'park-label', 4, '#87dfb6');
       function updateLabels() {
         const zoom = map.getZoom();
+        if (zoom >= 6) roadsLayer.addTo(map); else roadsLayer.remove();
+        if (zoom >= 6.5) parkBoundaries.addTo(map); else parkBoundaries.remove();
         if (zoom >= 5) regionalLayer.addTo(map); else regionalLayer.remove();
         if (zoom >= 6.5) parkLayer.addTo(map); else parkLayer.remove();
         status.textContent = zoom >= 6.5
@@ -154,6 +171,9 @@ const atlasTiles = base + '/tiles/sky-atlas/{z}/{x}/{y}.webp';
       .subtitle { color: #83d7df !important; font-weight: 700; font-size: 1.5rem; margin: 4px 0; }
       .legend i { display: inline-block; width: .55rem; height: .55rem; border-radius: 50%; margin-right: 5px; }
       .city { background: #ffe3ac; } .town { background: #a8cde4; } .park { background: #87dfb6; }
+      .legend .park-boundary, .legend .road { width: .85rem; height: 0; border-radius: 0; vertical-align: middle; }
+      .legend .park-boundary { border-top: 2px dashed #86e1b6; }
+      .legend .road { border-top: 1px solid #d5cfba; }
       button { font: inherit; background: #25383c; color: #f0eadd; border: 1px solid #688181; border-radius: 4px; padding: 6px 12px; cursor: pointer; }
       #night-map { height: clamp(400px, 67vh, 760px); background: #04050e; isolation: isolate; position: relative; }
       .fallback { position: absolute; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }

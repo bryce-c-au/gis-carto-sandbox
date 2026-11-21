@@ -48,7 +48,7 @@ const roadsUrl = base + '/data/major-roads.geojson';
           <button id="reset-extent" type="button" disabled>Reset</button>
           </div>
         </div>
-        <div class="layer-options"><span>SHOW ON MAP</span><label title="Subtle hillshade appears when you zoom in to regional scale"><input id="show-relief" type="checkbox" /> Terrain relief</label><label><input id="show-parks" type="checkbox" checked /> Park outlines</label><label><input id="show-roads" type="checkbox" checked /> Major roads</label><span class="map-hint">Drag to pan · scroll, pinch, or use + and − to zoom</span></div>
+        <div class="layer-options"><span>SHOW ON MAP</span><label title="Hillshade appears when you zoom in to regional scale"><input id="show-relief" type="checkbox" /> Terrain relief</label><label class="relief-strength" for="relief-strength">Strength <input id="relief-strength" type="range" min="0" max="100" value="50" disabled /><output id="relief-value" for="relief-strength">50%</output></label><label><input id="show-parks" type="checkbox" checked /> Park outlines</label><label><input id="show-roads" type="checkbox" checked /> Major roads</label><span class="map-hint">Drag to pan · scroll, pinch, or use + and − to zoom</span></div>
         <div id="night-map" data-image={image} data-atlas={atlasTiles} data-parks={parkBoundariesUrl} data-roads={roadsUrl} aria-label="Modelled artificial sky brightness across Australia with selected park boundaries and major roads. Drag to pan or use the zoom buttons.">
           <img class="fallback" src={atlasPreview} alt="Coloured map of modelled artificial sky brightness across Australia" />
         </div>
@@ -83,6 +83,8 @@ const roadsUrl = base + '/data/major-roads.geojson';
       const roadsToggle = document.querySelector<HTMLInputElement>('#show-roads')!;
       const parksToggle = document.querySelector<HTMLInputElement>('#show-parks')!;
       const reliefToggle = document.querySelector<HTMLInputElement>('#show-relief')!;
+      const reliefStrength = document.querySelector<HTMLInputElement>('#relief-strength')!;
+      const reliefValue = document.querySelector<HTMLOutputElement>('#relief-value')!;
       const viewTitle = document.querySelector<HTMLElement>('#view-title')!;
       const viewDescription = document.querySelector<HTMLElement>('#view-description')!;
       const sourceNote = document.querySelector<HTMLElement>('.source-note')!;
@@ -178,6 +180,7 @@ const roadsUrl = base + '/data/major-roads.geojson';
       let satellite = false;
       function updateRelief() {
         reliefToggle.disabled = satellite;
+        reliefStrength.disabled = satellite || !reliefToggle.checked;
         if (reliefToggle.checked && !satellite) terrainRelief.addTo(map);
         else terrainRelief.remove();
         sourceNote.textContent = satellite
@@ -186,6 +189,11 @@ const roadsUrl = base + '/data/major-roads.geojson';
           : 'Modelled sky brightness · 2016 atlas';
       }
       reliefToggle.addEventListener('change', updateRelief);
+      reliefStrength.addEventListener('input', () => {
+        const strength = Number(reliefStrength.value);
+        reliefValue.value = strength + '%';
+        terrainRelief.setOpacity(strength * 0.0076);
+      });
       modeButtons.forEach(button => button.addEventListener('click', () => {
         const nextSatellite = button.dataset.mode === 'satellite';
         if (nextSatellite === satellite) return;
@@ -288,6 +296,9 @@ const roadsUrl = base + '/data/major-roads.geojson';
       .layer-options label { cursor: pointer; white-space: nowrap; }
       .layer-options label:has(input:disabled) { opacity: .5; cursor: not-allowed; }
       .layer-options input { accent-color: #83d7df; vertical-align: middle; }
+      .relief-strength { display: inline-flex; align-items: center; gap: 7px; }
+      .relief-strength input { width: 88px; cursor: pointer; }
+      .relief-strength output { min-width: 2.6em; text-align: right; font-variant-numeric: tabular-nums; }
       .map-hint { margin-left: auto; color: #9bb1ae; }
       .mode-switch { display: flex; border: 1px solid #688181; border-radius: 4px; overflow: hidden; }
       .mode-switch button { border: 0; border-radius: 0; background: transparent; padding: 6px 10px; }

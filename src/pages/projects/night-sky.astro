@@ -37,7 +37,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
         </div>
         <div class="viewer-caption"><span id="view-status">Loading star catalogue…</span><span>Calculated sky position · illustrative landscape, not a terrain profile</span></div>
       </section>
-      <section class="explain"><h2>What this view shows</h2><p>The star field uses the Yale Bright Star Catalog and the selected location and time. You can look in every direction, and the horizon separates stars above and below the observer. Ground context adds a stylised landscape and bearing lines that suggest each place's character; it is not a measured skyline or terrain profile. Star positions use the catalogue's J2000 coordinates and an approximate sidereal-time calculation; this is an exploratory view, not a precision planetarium.</p><p>The viewer does not simulate cloud, moonlight, daylight, atmospheric extinction, local obstacles or current light pollution. The <a href={base + '/projects/australia-after-dark/'}>dark skies map</a> uses a historical 2016 model and should not be read as a live observing forecast.</p><p>Star data: <a href="https://github.com/brettonw/YaleBrightStarCatalog">Yale Bright Star Catalog JSON conversion by Bretton Wade</a>, MIT licence, derived from the Yale Bright Star Catalog. Viewer built with <a href="https://threejs.org/">Three.js</a>.</p></section>
+      <section class="explain"><h2>What this view shows</h2><p>The star field uses the Yale Bright Star Catalog and the selected location and time. You can look in every direction, and the horizon separates stars above and below the observer. Ground context adds a stylised landscape that suggests each place's character; it is not a measured skyline or terrain profile. Star positions use the catalogue's J2000 coordinates and an approximate sidereal-time calculation; this is an exploratory view, not a precision planetarium.</p><p>The viewer does not simulate cloud, moonlight, daylight, atmospheric extinction, local obstacles or current light pollution. The <a href={base + '/projects/australia-after-dark/'}>dark skies map</a> uses a historical 2016 model and should not be read as a live observing forecast.</p><p>Star data: <a href="https://github.com/brettonw/YaleBrightStarCatalog">Yale Bright Star Catalog JSON conversion by Bretton Wade</a>, MIT licence, derived from the Yale Bright Star Catalog. Viewer built with <a href="https://threejs.org/">Three.js</a>.</p></section>
     </main>
     <script>
       import * as THREE from 'three';
@@ -81,7 +81,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 
       const ground = new THREE.Mesh(
         new THREE.SphereGeometry(95, 64, 20, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2),
-        new THREE.MeshBasicMaterial({ color: 0x111b22, side: THREE.BackSide }),
+        new THREE.MeshBasicMaterial({ color: 0x0b141b, side: THREE.BackSide }),
       );
       scene.add(ground);
       const groundNote = document.querySelector<HTMLElement>('#ground-note')!;
@@ -89,14 +89,14 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       const landscape = new THREE.Group();
       scene.add(landscape);
       const landscapeStyles: Record<string, { label: string; seed: number; relief: number; color: number }> = {
-        brisbane: { label: 'Urban edge and distant hills', seed: 1, relief: 1.1, color: 0x21323a },
-        seq: { label: 'Hinterland hills', seed: 2, relief: 2.4, color: 0x1d3136 },
-        watarrka: { label: 'Sandstone ranges', seed: 3, relief: 3.1, color: 0x3c302e },
-        carnarvon: { label: 'Sandstone escarpments', seed: 4, relief: 3.4, color: 0x303333 },
-        girraween: { label: 'Granite country', seed: 5, relief: 2.2, color: 0x30383b },
-        munga: { label: 'Dune country', seed: 6, relief: 1.4, color: 0x423530 },
-        bunya: { label: 'Forested ranges', seed: 7, relief: 2.8, color: 0x203631 },
-        sundown: { label: 'Rugged ranges', seed: 8, relief: 3.0, color: 0x303734 },
+        brisbane: { label: 'Urban edge and distant hills', seed: 1, relief: 1.1, color: 0x1a2a32 },
+        seq: { label: 'Hinterland hills', seed: 2, relief: 2.4, color: 0x1b2c30 },
+        watarrka: { label: 'Sandstone ranges', seed: 3, relief: 3.1, color: 0x2b2524 },
+        carnarvon: { label: 'Sandstone escarpments', seed: 4, relief: 3.4, color: 0x242a2a },
+        girraween: { label: 'Granite country', seed: 5, relief: 2.2, color: 0x252c2e },
+        munga: { label: 'Dune country', seed: 6, relief: 1.4, color: 0x302824 },
+        bunya: { label: 'Forested ranges', seed: 7, relief: 2.8, color: 0x1b2b28 },
+        sundown: { label: 'Rugged ranges', seed: 8, relief: 3.0, color: 0x242b29 },
       };
       function updateLandscape() {
         landscape.traverse(object => {
@@ -108,46 +108,45 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
         landscape.clear();
         const style = landscapeStyles[locationInput.value];
         groundNote.textContent = `${skyLocations[locationInput.value][0]} · ${style.label} · illustrative`;
-        // Keep the entire landscape below the level horizon so it never masks a visible star.
-        const vertices: number[] = [];
-        const segments = 256;
-        for (let i = 0; i < segments; i++) {
+        // Two full-depth silhouettes avoid horizontal bands; both stay below the level horizon.
+        function addRidge(radius: number, foreground: boolean) {
+          const vertices: number[] = [];
+          const segments = 256;
           const edge = (index: number) => {
             const angle = index / segments * Math.PI * 2;
-            const wave = Math.sin(angle * (3 + style.seed % 3) + style.seed) * 0.4
-              + Math.sin(angle * (9 + style.seed) - style.seed * 2) * 0.16;
-            const top = -0.5 - style.relief * (0.45 + 0.3 * wave);
-            const x = Math.sin(angle) * 89;
-            const z = -Math.cos(angle) * 89;
-            return { top: [x, top, z], bottom: [x, -18, z] };
+            const broad = Math.sin(angle * (3 + style.seed % 3) + style.seed) * 0.5;
+            const detail = Math.sin(angle * (9 + style.seed) - style.seed * 2) * 0.17;
+            const height = foreground
+              ? -5.5 - style.relief * (0.5 + broad * 0.25 + detail)
+              : -0.7 - style.relief * (0.7 + broad * 0.35 + detail);
+            const x = Math.sin(angle) * radius;
+            const z = -Math.cos(angle) * radius;
+            return { top: [x, height, z], bottom: [x, -95, z] };
           };
-          const a = edge(i), b = edge(i + 1);
-          vertices.push(...a.top, ...a.bottom, ...b.top, ...b.top, ...a.bottom, ...b.bottom);
+          for (let i = 0; i < segments; i++) {
+            const a = edge(i), b = edge(i + 1);
+            vertices.push(...a.top, ...a.bottom, ...b.top, ...b.top, ...a.bottom, ...b.bottom);
+          }
+          const geometry = new THREE.BufferGeometry();
+          geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+          const color = new THREE.Color(style.color);
+          if (foreground) color.multiplyScalar(0.65);
+          landscape.add(new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide })));
         }
-        const geometry = new THREE.BufferGeometry();
-        geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-        const strip = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: style.color, side: THREE.DoubleSide }));
-        landscape.add(strip);
-        for (const altitude of [-5, -12, -22]) {
-          const radians = THREE.MathUtils.degToRad(altitude);
-          const points = Array.from({ length: 129 }, (_, i) => {
-            const angle = i / 128 * Math.PI * 2;
-            return new THREE.Vector3(Math.sin(angle) * 87 * Math.cos(radians), 87 * Math.sin(radians), -Math.cos(angle) * 87 * Math.cos(radians));
-          });
-          landscape.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), new THREE.LineBasicMaterial({ color: 0x668b91, transparent: true, opacity: 0.17 })));
-        }
+        addRidge(91, false);
+        addRidge(85, true);
         landscape.visible = groundToggle.getAttribute('aria-pressed') === 'true';
         groundNote.hidden = !landscape.visible;
         requestRender();
       }
-      for (const altitude of [0, 30, 60]) {
+      for (const altitude of [0]) {
         const radius = 92 * Math.cos(THREE.MathUtils.degToRad(altitude));
         const y = 92 * Math.sin(THREE.MathUtils.degToRad(altitude));
         const points = Array.from({ length: 129 }, (_, i) => {
           const angle = i / 128 * Math.PI * 2;
           return new THREE.Vector3(Math.sin(angle) * radius, y, -Math.cos(angle) * radius);
         });
-        scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), new THREE.LineBasicMaterial({ color: altitude ? 0x24404a : 0x70939a, transparent: true, opacity: altitude ? 0.3 : 0.75 })));
+        scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), new THREE.LineBasicMaterial({ color: 0x70939a, transparent: true, opacity: 0.5 })));
       }
       const directions = [['N', 0], ['E', 90], ['S', 180], ['W', 270]] as const;
       const directionLabels = directions.map(([name, degrees]) => {

@@ -22,7 +22,18 @@ const roadsUrl = base + '/data/major-roads.geojson';
         <p class="eyebrow">AUSTRALIA · DARK SKIES</p>
         <h1>Where the stars still win</h1>
         <p class="subtitle">Australia after dark</p>
-        <p>Drag to pan. Scroll, pinch, or use + and − to zoom in and reveal regional centres and selected national parks.</p>
+        <p>Explore a model of Australia's artificial sky brightness, then compare it with satellite night lights. Choose a place to begin, or pan and zoom freely.</p>
+      </section>
+      <section class="guide" aria-labelledby="guide-title">
+        <div class="section-heading"><div><p class="eyebrow">GUIDED VIEWS</p><h2 id="guide-title">Follow the dark</h2></div><p>Six places, from the national pattern to individual parks.</p></div>
+        <div class="stop-grid">
+          <button class="stop" data-stop="australia" aria-pressed="true"><small>01 · NATIONAL</small><strong>Australia</strong><span>Coast and interior</span></button>
+          <button class="stop" data-stop="seq" aria-pressed="false"><small>02 · REGIONAL</small><strong>South East Queensland</strong><span>City halo and hinterland</span></button>
+          <button class="stop" data-stop="watarrka" aria-pressed="false"><small>03 · PARK</small><strong>Watarrka</strong><span>Central Australia</span></button>
+          <button class="stop" data-stop="carnarvon" aria-pressed="false"><small>04 · PARK</small><strong>Carnarvon Gorge</strong><span>Central Queensland</span></button>
+          <button class="stop" data-stop="girraween" aria-pressed="false"><small>05 · PARK</small><strong>Girraween</strong><span>Granite Belt</span></button>
+          <button class="stop" data-stop="munga" aria-pressed="false"><small>06 · PARK</small><strong>Munga-Thirri</strong><span>Channel Country</span></button>
+        </div>
       </section>
       <section class="map-panel" aria-label="Interactive map of Australian night lights">
         <div class="toolbar">
@@ -33,15 +44,26 @@ const roadsUrl = base + '/data/major-roads.geojson';
             <span><i class="park-boundary"></i> Park boundary</span>
             <span><i class="road"></i> Major road</span>
           </div>
-          <div class="map-actions"><button id="map-mode" type="button">Show satellite lights</button>
-          <button id="reset-extent" type="button" disabled>Reset to Australia</button>
+          <div class="map-actions"><div class="mode-switch" aria-label="Imagery layer"><button type="button" data-mode="atlas" aria-pressed="true">Sky brightness</button><button type="button" data-mode="satellite" aria-pressed="false">Satellite lights</button></div>
+          <button id="reset-extent" type="button" disabled>Reset</button>
           </div>
         </div>
+        <div class="layer-options"><span>SHOW ON MAP</span><label><input id="show-parks" type="checkbox" checked /> Park outlines</label><label><input id="show-roads" type="checkbox" checked /> Major roads</label><span class="map-hint">Drag to pan · scroll, pinch, or use + and − to zoom</span></div>
         <div id="night-map" data-image={image} data-atlas={atlasTiles} data-parks={parkBoundariesUrl} data-roads={roadsUrl} aria-label="Modelled artificial sky brightness across Australia with selected park boundaries and major roads. Drag to pan or use the zoom buttons.">
           <img class="fallback" src={atlasPreview} alt="Coloured map of modelled artificial sky brightness across Australia" />
         </div>
-        <p class="caption" id="map-scale" role="status">National view</p>
+        <div class="map-caption"><p class="caption" id="map-scale" role="status">National view</p><p class="source-note">Modelled sky brightness · 2016 atlas</p></div>
         <div class="sky-key" aria-label="Artificial sky brightness from darkest to brightest"><strong>ARTIFICIAL SKY BRIGHTNESS</strong><div class="swatches"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="key-ends"><span>Near-natural</span><span>Brightest</span></div></div>
+      </section>
+      <section class="view-note" aria-live="polite"><p class="eyebrow">IN VIEW</p><h2 id="view-title">Australia</h2><p id="view-description">The national view shows the broad contrast between concentrated light around population centres and the darker interior.</p></section>
+      <section class="nearby" aria-labelledby="nearby-title">
+        <div class="section-heading"><div><p class="eyebrow">FROM BRISBANE</p><h2 id="nearby-title">A darker night, closer to home</h2></div><p>Three park areas to explore within roughly four hours' drive. Times are indicative, and the atlas is a historical model rather than a forecast.</p></div>
+        <div class="near-grid">
+          <article><span class="travel-time">ABOUT 3 HOURS</span><h3>Bunya Mountains</h3><p>Compare the park's modelled sky with the brighter centres of the Darling Downs and South Burnett.</p><button class="text-link" data-stop="bunya">View on map →</button><a href="https://parks.qld.gov.au/parks/bunya-mountains" target="_blank" rel="noopener noreferrer">Park information ↗</a></article>
+          <article><span class="travel-time">ABOUT 3½ HOURS</span><h3>Girraween</h3><p>Look beyond the Granite Belt towns to see how the coloured bands change around the park.</p><button class="text-link" data-stop="girraween">View on map →</button><a href="https://parks.qld.gov.au/parks/girraween" target="_blank" rel="noopener noreferrer">Park information ↗</a></article>
+          <article><span class="travel-time">ABOUT 3–4 HOURS</span><h3>Sundown</h3><p>The atlas shows a dark area around this border country park; use the map to compare it with nearby towns.</p><button class="text-link" data-stop="sundown">View on map →</button><a href="https://parks.qld.gov.au/parks/sundown" target="_blank" rel="noopener noreferrer">Park information ↗</a></article>
+        </div>
+        <p class="travel-note">Drive times are approximate figures published by Queensland Parks. Check the specific access point, road conditions, park rules, moon and weather before planning a night visit.</p>
       </section>
       <section class="notes">
         <h2>Reading the map</h2>
@@ -56,7 +78,12 @@ const roadsUrl = base + '/data/major-roads.geojson';
 
       const container = document.querySelector<HTMLElement>('#night-map')!;
       const reset = document.querySelector<HTMLButtonElement>('#reset-extent')!;
-      const mode = document.querySelector<HTMLButtonElement>('#map-mode')!;
+      const modeButtons = document.querySelectorAll<HTMLButtonElement>('[data-mode]');
+      const roadsToggle = document.querySelector<HTMLInputElement>('#show-roads')!;
+      const parksToggle = document.querySelector<HTMLInputElement>('#show-parks')!;
+      const viewTitle = document.querySelector<HTMLElement>('#view-title')!;
+      const viewDescription = document.querySelector<HTMLElement>('#view-description')!;
+      const sourceNote = document.querySelector<HTMLElement>('.source-note')!;
       const status = document.querySelector<HTMLElement>('#map-scale')!;
       const projection = L.CRS.EPSG3857;
       const rasterBounds = L.latLngBounds(
@@ -72,10 +99,30 @@ const roadsUrl = base + '/data/major-roads.geojson';
         wheelDebounceTime: 20,
         touchZoom: true,
       });
+      const stops: Record<string, { title: string; description: string; bounds: [[number, number], [number, number]] }> = {
+        australia: { title: 'Australia', description: 'The national view shows the broad contrast between concentrated light around population centres and the darker interior.', bounds: [[-49, 100], [-7, 165]] },
+        seq: { title: 'South East Queensland', description: 'Follow the Brisbane–Gold Coast light halo, then compare it with the inland towns and nearby national parks.', bounds: [[-29.7, 150.3], [-25.5, 154.2]] },
+        watarrka: { title: 'Watarrka', description: 'Look at the Watarrka National Park boundary in Central Australia and the modelled sky brightness around it.', bounds: [[-24.8, 130.6], [-23.7, 132.5]] },
+        carnarvon: { title: 'Carnarvon Gorge', description: 'The gorge marker lies within the larger Carnarvon National Park. Compare its outline with the nearby pools of artificial sky brightness.', bounds: [[-25.8, 147.3], [-24.4, 149.1]] },
+        girraween: { title: 'Girraween', description: 'Explore the Granite Belt park and compare its modelled sky with Stanthorpe and the surrounding towns.', bounds: [[-29.25, 151.3], [-28.4, 152.5]] },
+        munga: { title: 'Munga-Thirri', description: 'Explore a broad remote park landscape in western Queensland and the sparse light signatures around it.', bounds: [[-27.4, 136.5], [-24.0, 140.0]] },
+        bunya: { title: 'Bunya Mountains', description: 'Compare the park with the modelled sky brightness around the Darling Downs and South Burnett.', bounds: [[-27.3, 150.9], [-26.2, 152.4]] },
+        sundown: { title: 'Sundown', description: 'The atlas depicts dark modelled skies in the park area, southwest of the brighter Granite Belt towns.', bounds: [[-29.2, 151.2], [-28.4, 152.3]] },
+      };
       const resetView = () => map.fitBounds(australia, { padding: [18, 18], animate: false });
       resetView();
       reset.disabled = false;
-      reset.addEventListener('click', resetView);
+      function selectStop(id: string) {
+        const stop = stops[id];
+        if (!stop) return;
+        viewTitle.textContent = stop.title;
+        viewDescription.textContent = stop.description;
+        document.querySelectorAll<HTMLButtonElement>('.stop').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.stop === id)));
+        map.flyToBounds(stop.bounds, { padding: [24, 24], maxZoom: 7.75, duration: 0.8 });
+        if (document.querySelector('.nearby button[data-stop="' + id + '"]')) container.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      document.querySelectorAll<HTMLButtonElement>('button[data-stop]').forEach(button => button.addEventListener('click', () => selectStop(button.dataset.stop!)));
+      reset.addEventListener('click', () => selectStop('australia'));
       L.control.scale({ imperial: false }).addTo(map);
       const satelliteOverview = L.imageOverlay(container.dataset.image!, rasterBounds).on('load', () => {
         container.classList.add('has-map');
@@ -111,8 +158,10 @@ const roadsUrl = base + '/data/major-roads.geojson';
       fetch(container.dataset.roads!).then(response => response.json()).then(data => roadsLayer.addData(data));
       fetch(container.dataset.parks!).then(response => response.json()).then(data => parkBoundaries.addData(data));
       let satellite = false;
-      mode.addEventListener('click', () => {
-        satellite = !satellite;
+      modeButtons.forEach(button => button.addEventListener('click', () => {
+        const nextSatellite = button.dataset.mode === 'satellite';
+        if (nextSatellite === satellite) return;
+        satellite = nextSatellite;
         if (satellite) {
           map.setMaxZoom(10);
           map.removeLayer(skyAtlas);
@@ -124,8 +173,9 @@ const roadsUrl = base + '/data/major-roads.geojson';
           map.removeLayer(satelliteOverview);
           skyAtlas.addTo(map);
         }
-        mode.textContent = satellite ? 'Show sky brightness' : 'Show satellite lights';
-      });
+        modeButtons.forEach(option => option.setAttribute('aria-pressed', String((option.dataset.mode === 'satellite') === satellite)));
+        sourceNote.textContent = satellite ? 'Satellite night lights · NASA Black Marble 2016' : 'Modelled sky brightness · 2016 atlas';
+      }));
 
       function placeLayer(places: Place[], kind: string, radius: number, color: string) {
         return L.layerGroup(places.map(([name, lat, lng]) => L.circleMarker([lat, lng], {
@@ -141,8 +191,8 @@ const roadsUrl = base + '/data/major-roads.geojson';
       const parkLayer = placeLayer(parks, 'park-label', 4, '#87dfb6');
       function updateLabels() {
         const zoom = map.getZoom();
-        if (zoom >= 6) roadsLayer.addTo(map); else roadsLayer.remove();
-        if (zoom >= 6.5) parkBoundaries.addTo(map); else parkBoundaries.remove();
+        if (zoom >= 6 && roadsToggle.checked) roadsLayer.addTo(map); else roadsLayer.remove();
+        if (zoom >= 6.5 && parksToggle.checked) parkBoundaries.addTo(map); else parkBoundaries.remove();
         if (zoom >= 5) regionalLayer.addTo(map); else regionalLayer.remove();
         if (zoom >= 6.5) parkLayer.addTo(map); else parkLayer.remove();
         status.textContent = zoom >= 6.5
@@ -151,6 +201,8 @@ const roadsUrl = base + '/data/major-roads.geojson';
           : 'National view · zoom in for regional centres';
       }
       map.on('zoomend', updateLabels);
+      roadsToggle.addEventListener('change', updateLabels);
+      parksToggle.addEventListener('change', updateLabels);
       updateLabels();
     </script>
     <style>
@@ -161,7 +213,7 @@ const roadsUrl = base + '/data/major-roads.geojson';
       a { color: #edc08e; }
       .intro { margin: 36px 0 28px; }
       .intro p, .notes p { max-width: 740px; color: #c6cfcb; }
-      .intro .eyebrow { color: #d6a66c; font-size: .875rem; font-weight: bold; letter-spacing: .14em; }
+      .eyebrow { color: #d6a66c; font-size: .875rem; font-weight: bold; letter-spacing: .14em; }
       h1 { font: 400 clamp(2.8rem, 7vw, 6.5rem)/1 Georgia, serif; margin: 14px 0; }
       h2 { font: 400 2rem Georgia, serif; }
       .map-panel { border: 1px solid #45504d; background: #182326; }
@@ -192,6 +244,58 @@ const roadsUrl = base + '/data/major-roads.geojson';
       #night-map :global(.place-label::before) { display: none; }
       #night-map :global(.regional-label) { color: #a8cde4; }
       #night-map :global(.park-label) { color: #87dfb6; }
+      .guide, .nearby { margin: 44px 0 28px; }
+      .section-heading { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 18px; }
+      .section-heading h2 { margin: 5px 0 0; }
+      .section-heading > p { max-width: 420px; margin: 0; color: #adbab8; }
+      .stop-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+      .stop { display: flex; flex-direction: column; align-items: start; min-height: 118px; padding: 16px 18px; text-align: left; background: #172225; border: 1px solid #344b4d; transition: background .2s, border-color .2s, transform .2s; }
+      .stop:hover { transform: translateY(-2px); background: #203237; border-color: #87dfb6; }
+      .stop[aria-pressed="true"] { background: linear-gradient(125deg, #24454a, #172225 80%); border-color: #83d7df; box-shadow: inset 3px 0 #83d7df; }
+      .stop small, .travel-time { color: #86d4d6; font-size: .72rem; letter-spacing: .12em; font-weight: 700; }
+      .stop strong { font: 400 1.25rem/1.25 Georgia, serif; margin-top: 7px; }
+      .stop span { color: #a9b9b6; font-size: .85rem; margin-top: auto; }
+      .layer-options { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; padding: 7px 16px 10px; border-top: 1px solid #344548; font-size: .82rem; }
+      .layer-options > span:first-child { color: #8ea6a4; font-size: .68rem; font-weight: 700; letter-spacing: .11em; }
+      .layer-options label { cursor: pointer; white-space: nowrap; }
+      .layer-options input { accent-color: #83d7df; vertical-align: middle; }
+      .map-hint { margin-left: auto; color: #9bb1ae; }
+      .mode-switch { display: flex; border: 1px solid #688181; border-radius: 4px; overflow: hidden; }
+      .mode-switch button { border: 0; border-radius: 0; background: transparent; padding: 6px 10px; }
+      .mode-switch button + button { border-left: 1px solid #688181; }
+      .mode-switch button[aria-pressed="true"] { background: #83d7df; color: #0b1b20; font-weight: 700; }
+      .map-caption { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+      .source-note { margin: 0; padding: 8px 16px; font-size: .78rem; color: #a0b7b2; }
+      .view-note { margin-top: 14px; padding: 22px 28px; border: 1px solid #426069; background: linear-gradient(110deg, #173036, #172124 75%); }
+      .view-note .eyebrow { margin: 0; color: #83d7df; }
+      .view-note h2 { margin: 4px 0 6px; }
+      .view-note > p:last-child { margin: 0; color: #c5d1ce; max-width: 850px; }
+      .nearby { margin-top: 66px; }
+      .near-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+      .near-grid article { padding: 24px; background: #192629; border: 1px solid #3d5556; display: flex; align-items: start; flex-direction: column; }
+      .near-grid h3 { font: 400 1.75rem/1.2 Georgia, serif; margin: 10px 0; }
+      .near-grid p { color: #c1cdca; margin: 0 0 16px; }
+      .near-grid a, .near-grid .text-link { color: #edc08e; font-size: .9rem; }
+      .near-grid .text-link { padding: 0; border: 0; background: transparent; margin-top: auto; font-weight: 700; }
+      .near-grid a { margin-top: 9px; }
+      .travel-note { color: #9eb3ae; font-size: .82rem; }
+      button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid #83d7df; outline-offset: 2px; }
+      @media (max-width: 800px) {
+        .section-heading { display: block; }
+        .section-heading > p { margin-top: 8px; }
+        .stop-grid { grid-template-columns: repeat(2, 1fr); }
+        .near-grid { grid-template-columns: 1fr; }
+        .map-hint { margin-left: 0; width: 100%; }
+      }
+      @media (max-width: 520px) {
+        .stop-grid { grid-template-columns: 1fr 1fr; }
+        .stop { min-height: 105px; padding: 12px; }
+        .stop strong { font-size: 1.05rem; }
+        .map-actions, .mode-switch { width: 100%; }
+        .mode-switch button { flex: 1; }
+        .map-caption { display: block; }
+        .source-note { padding-top: 0; }
+      }
     </style>
   </body>
 </html>

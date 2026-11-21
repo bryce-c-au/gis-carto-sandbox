@@ -48,4 +48,6 @@ export const parks: Place[] = [
   ['Wilsons Promontory', -39.03, 146.37], ['Croajingolong', -37.71, 149.33],
   ['Cradle Mountain–Lake St Clair', -41.83, 145.96],
   ['Freycinet', -42.17, 148.29], ['Southwest', -43.15, 146.15],
+  ['Girraween', -28.86, 151.95], ['Munga-Thirri', -25.57, 138.35],
+  ['Sundown', -28.85, 151.72], ['Bunya Mountains', -26.82, 151.53],
 ];

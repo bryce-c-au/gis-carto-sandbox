@@ -27,16 +27,17 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
             <option value="sundown">Sundown NP</option>
           </select></label>
           <label>Date and time <span class="timezone">Brisbane time (UTC+10)</span><input id="sky-time" type="datetime-local" /></label>
-          <div class="viewer-actions"><button id="tonight" type="button">Tonight · 9 pm</button><button id="reset-view" type="button">Face south</button><button id="fullscreen" type="button">Fullscreen</button></div>
+          <div class="viewer-actions"><button id="tonight" type="button">Tonight · 9 pm</button><button id="reset-view" type="button">Face south</button><button id="ground-toggle" type="button" aria-pressed="true">Ground context on</button><button id="fullscreen" type="button">Fullscreen</button></div>
         </div>
         <div id="sky-view" data-stars={base + '/data/bright-stars.json'}>
           <div class="sky-placeholder" role="status">Preparing the sky…</div>
           <div class="sky-labels" aria-hidden="true"></div>
+          <div class="ground-note" id="ground-note"></div>
           <div class="sky-instructions">Drag to look around · scroll or pinch to zoom</div>
         </div>
-        <div class="viewer-caption"><span id="view-status">Loading star catalogue…</span><span>Calculated sky position · illustrative horizon</span></div>
+        <div class="viewer-caption"><span id="view-status">Loading star catalogue…</span><span>Calculated sky position · illustrative landscape, not a terrain profile</span></div>
       </section>
-      <section class="explain"><h2>What this view shows</h2><p>The star field uses the Yale Bright Star Catalog and the selected location and time. You can look in every direction, and the horizon separates stars above and below the observer. The horizon is a simple level reference, not a terrain profile. Star positions use the catalogue's J2000 coordinates and an approximate sidereal-time calculation; this is an exploratory view, not a precision planetarium.</p><p>The viewer does not simulate cloud, moonlight, daylight, atmospheric extinction, local obstacles or current light pollution. The <a href={base + '/projects/australia-after-dark/'}>dark skies map</a> uses a historical 2016 model and should not be read as a live observing forecast.</p><p>Star data: <a href="https://github.com/brettonw/YaleBrightStarCatalog">Yale Bright Star Catalog JSON conversion by Bretton Wade</a>, MIT licence, derived from the Yale Bright Star Catalog. Viewer built with <a href="https://threejs.org/">Three.js</a>.</p></section>
+      <section class="explain"><h2>What this view shows</h2><p>The star field uses the Yale Bright Star Catalog and the selected location and time. You can look in every direction, and the horizon separates stars above and below the observer. Ground context adds a stylised landscape and bearing lines that suggest each place's character; it is not a measured skyline or terrain profile. Star positions use the catalogue's J2000 coordinates and an approximate sidereal-time calculation; this is an exploratory view, not a precision planetarium.</p><p>The viewer does not simulate cloud, moonlight, daylight, atmospheric extinction, local obstacles or current light pollution. The <a href={base + '/projects/australia-after-dark/'}>dark skies map</a> uses a historical 2016 model and should not be read as a live observing forecast.</p><p>Star data: <a href="https://github.com/brettonw/YaleBrightStarCatalog">Yale Bright Star Catalog JSON conversion by Bretton Wade</a>, MIT licence, derived from the Yale Bright Star Catalog. Viewer built with <a href="https://threejs.org/">Three.js</a>.</p></section>
     </main>
     <script>
       import * as THREE from 'three';
@@ -83,6 +84,62 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
         new THREE.MeshBasicMaterial({ color: 0x111b22, side: THREE.BackSide }),
       );
       scene.add(ground);
+      const groundNote = document.querySelector<HTMLElement>('#ground-note')!;
+      const groundToggle = document.querySelector<HTMLButtonElement>('#ground-toggle')!;
+      const landscape = new THREE.Group();
+      scene.add(landscape);
+      const landscapeStyles: Record<string, { label: string; seed: number; relief: number; color: number }> = {
+        brisbane: { label: 'Urban edge and distant hills', seed: 1, relief: 1.1, color: 0x21323a },
+        seq: { label: 'Hinterland hills', seed: 2, relief: 2.4, color: 0x1d3136 },
+        watarrka: { label: 'Sandstone ranges', seed: 3, relief: 3.1, color: 0x3c302e },
+        carnarvon: { label: 'Sandstone escarpments', seed: 4, relief: 3.4, color: 0x303333 },
+        girraween: { label: 'Granite country', seed: 5, relief: 2.2, color: 0x30383b },
+        munga: { label: 'Dune country', seed: 6, relief: 1.4, color: 0x423530 },
+        bunya: { label: 'Forested ranges', seed: 7, relief: 2.8, color: 0x203631 },
+        sundown: { label: 'Rugged ranges', seed: 8, relief: 3.0, color: 0x303734 },
+      };
+      function updateLandscape() {
+        landscape.traverse(object => {
+          if (object instanceof THREE.Mesh || object instanceof THREE.Line) {
+            object.geometry.dispose();
+            (object.material as THREE.Material).dispose();
+          }
+        });
+        landscape.clear();
+        const style = landscapeStyles[locationInput.value];
+        groundNote.textContent = `${skyLocations[locationInput.value][0]} · ${style.label} · illustrative`;
+        // Keep the entire landscape below the level horizon so it never masks a visible star.
+        const vertices: number[] = [];
+        const segments = 256;
+        for (let i = 0; i < segments; i++) {
+          const edge = (index: number) => {
+            const angle = index / segments * Math.PI * 2;
+            const wave = Math.sin(angle * (3 + style.seed % 3) + style.seed) * 0.4
+              + Math.sin(angle * (9 + style.seed) - style.seed * 2) * 0.16;
+            const top = -0.5 - style.relief * (0.45 + 0.3 * wave);
+            const x = Math.sin(angle) * 89;
+            const z = -Math.cos(angle) * 89;
+            return { top: [x, top, z], bottom: [x, -18, z] };
+          };
+          const a = edge(i), b = edge(i + 1);
+          vertices.push(...a.top, ...a.bottom, ...b.top, ...b.top, ...a.bottom, ...b.bottom);
+        }
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+        const strip = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: style.color, side: THREE.DoubleSide }));
+        landscape.add(strip);
+        for (const altitude of [-5, -12, -22]) {
+          const radians = THREE.MathUtils.degToRad(altitude);
+          const points = Array.from({ length: 129 }, (_, i) => {
+            const angle = i / 128 * Math.PI * 2;
+            return new THREE.Vector3(Math.sin(angle) * 87 * Math.cos(radians), 87 * Math.sin(radians), -Math.cos(angle) * 87 * Math.cos(radians));
+          });
+          landscape.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), new THREE.LineBasicMaterial({ color: 0x668b91, transparent: true, opacity: 0.17 })));
+        }
+        landscape.visible = groundToggle.getAttribute('aria-pressed') === 'true';
+        groundNote.hidden = !landscape.visible;
+        requestRender();
+      }
       for (const altitude of [0, 30, 60]) {
         const radius = 92 * Math.cos(THREE.MathUtils.degToRad(altitude));
         const y = 92 * Math.sin(THREE.MathUtils.degToRad(altitude));
@@ -201,13 +258,22 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       renderer.domElement.addEventListener('pointerup', () => { dragging = false; });
       renderer.domElement.addEventListener('pointercancel', () => { dragging = false; });
       renderer.domElement.addEventListener('wheel', event => { event.preventDefault(); camera.fov = THREE.MathUtils.clamp(camera.fov + Math.sign(event.deltaY) * 4, 30, 100); requestRender(); }, { passive: false });
-      locationInput.addEventListener('change', updateSky);
+      locationInput.addEventListener('change', () => { updateSky(); updateLandscape(); });
+      groundToggle.addEventListener('click', () => {
+        const enabled = groundToggle.getAttribute('aria-pressed') !== 'true';
+        groundToggle.setAttribute('aria-pressed', String(enabled));
+        groundToggle.textContent = `Ground context ${enabled ? 'on' : 'off'}`;
+        landscape.visible = enabled;
+        groundNote.hidden = !enabled;
+        requestRender();
+      });
       timeInput.addEventListener('change', updateSky);
       document.querySelector('#tonight')!.addEventListener('click', setTonight);
       document.querySelector('#reset-view')!.addEventListener('click', () => { yaw = Math.PI; pitch = 0.35; camera.fov = 72; requestRender(); });
       document.querySelector('#fullscreen')!.addEventListener('click', () => { if (document.fullscreenElement) document.exitFullscreen(); else view.requestFullscreen(); });
       document.addEventListener('fullscreenchange', requestRender);
       new ResizeObserver(requestRender).observe(view);
+      updateLandscape();
       fetch(view.dataset.stars!).then(response => { if (!response.ok) throw new Error('Catalog unavailable'); return response.json(); }).then((stars: Star[]) => {
         catalog = stars;
         placeholder.remove();
@@ -233,6 +299,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       select, input { min-height: 42px; }
       button { cursor: pointer; }
       button:hover, button:focus-visible { background: #34545b; }
+      #ground-toggle[aria-pressed="true"] { border-color: #83d7df; color: #b4edf0; }
       .viewer-actions { display: flex; gap: 8px; flex-wrap: wrap; }
       #sky-view { height: clamp(430px, 68vh, 750px); position: relative; overflow: hidden; background: radial-gradient(ellipse at 50% 80%, #1e3a48 0%, #0b1829 45%, #030b17 100%); }
       #sky-view:fullscreen { height: 100vh; }
@@ -245,11 +312,13 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       .sky-labels :global([hidden]) { display: none; }
       .sky-placeholder { position: absolute; inset: 0; display: grid; place-items: center; color: #d0e6e5; }
       .sky-instructions { position: absolute; bottom: 18px; left: 18px; color: #c4d8dc; font-size: .8rem; pointer-events: none; }
+      .ground-note { position: absolute; right: 18px; bottom: 18px; max-width: 55%; color: #c4d8dc; font-size: .8rem; text-align: right; pointer-events: none; text-shadow: 0 1px 6px #000; }
+      .ground-note[hidden] { display: none; }
       .viewer-caption { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 9px 15px; color: #afc4c1; font-size: .82rem; }
       .explain { max-width: 850px; padding-top: 42px; }
       h2 { font: 400 2.5rem Georgia, serif; }
       .explain p { color: #c1cdca; }
-      @media (max-width: 700px) { main { padding: 0 16px 50px; } header span { display: none; } .controls { gap: 10px; } .controls label { width: 100%; } select, input { width: 100%; } .viewer-actions { width: 100%; } .viewer-actions button { flex: 1; } .viewer-caption { display: block; } .viewer-caption span { display: block; } }
+      @media (max-width: 700px) { main { padding: 0 16px 50px; } header span { display: none; } .controls { gap: 10px; } .controls label { width: 100%; } select, input { width: 100%; } .viewer-actions { width: 100%; } .viewer-actions button { flex: 1; } .viewer-caption { display: block; } .viewer-caption span { display: block; } .ground-note { bottom: 42px; max-width: 80%; } }
     </style>
   </body>
 </html>

@@ -55,7 +55,7 @@ const roadsUrl = base + '/data/major-roads.geojson';
         <div class="map-caption"><p class="caption" id="map-scale" role="status">National view</p><p class="source-note">Modelled sky brightness · 2016 atlas</p></div>
         <div class="sky-key" aria-label="Artificial sky brightness from darkest to brightest"><strong>ARTIFICIAL SKY BRIGHTNESS</strong><div class="swatches"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="key-ends"><span>Near-natural</span><span>Brightest</span></div></div>
       </section>
-      <section class="view-note" aria-live="polite"><p class="eyebrow">IN VIEW</p><h2 id="view-title">Australia</h2><p id="view-description">The national view shows the broad contrast between concentrated light around population centres and the darker interior.</p></section>
+      <section class="view-note" aria-live="polite"><p class="eyebrow">IN VIEW</p><h2 id="view-title">Australia</h2><p id="view-description">The national view shows the broad contrast between concentrated light around population centres and the darker interior.</p><a id="sky-link" href={base + '/projects/night-sky/?location=brisbane'}>Open the 3D sky viewer →</a></section>
       <section class="nearby" aria-labelledby="nearby-title">
         <div class="section-heading"><div><p class="eyebrow">FROM BRISBANE</p><h2 id="nearby-title">A darker night, closer to home</h2></div><p>Three park areas to explore within roughly four hours' drive. Times are indicative, and the atlas is a historical model rather than a forecast.</p></div>
         <div class="near-grid">
@@ -87,6 +87,7 @@ const roadsUrl = base + '/data/major-roads.geojson';
       const reliefValue = document.querySelector<HTMLOutputElement>('#relief-value')!;
       const viewTitle = document.querySelector<HTMLElement>('#view-title')!;
       const viewDescription = document.querySelector<HTMLElement>('#view-description')!;
+      const skyLink = document.querySelector<HTMLAnchorElement>('#sky-link')!;
       const sourceNote = document.querySelector<HTMLElement>('.source-note')!;
       const status = document.querySelector<HTMLElement>('#map-scale')!;
       const projection = L.CRS.EPSG3857;
@@ -121,6 +122,7 @@ const roadsUrl = base + '/data/major-roads.geojson';
         if (!stop) return;
         viewTitle.textContent = stop.title;
         viewDescription.textContent = stop.description;
+        skyLink.href = `${import.meta.env.BASE_URL}projects/night-sky/?location=${id === 'australia' || id === 'seq' ? 'brisbane' : id}`;
         document.querySelectorAll<HTMLButtonElement>('.stop').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.stop === id)));
         map.flyToBounds(stop.bounds, { padding: [24, 24], maxZoom: 7.75, duration: 0.8 });
         if (document.querySelector('.nearby button[data-stop="' + id + '"]')) container.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -349,7 +351,8 @@ const roadsUrl = base + '/data/major-roads.geojson';
       .view-note { margin-top: 14px; padding: 22px 28px; border: 1px solid #426069; background: linear-gradient(110deg, #173036, #172124 75%); }
       .view-note .eyebrow { margin: 0; color: #83d7df; }
       .view-note h2 { margin: 4px 0 6px; }
-      .view-note > p:last-child { margin: 0; color: #c5d1ce; max-width: 850px; }
+      .view-note #view-description { margin: 0; color: #c5d1ce; max-width: 850px; }
+      .view-note #sky-link { display: inline-block; margin-top: 15px; font-weight: 700; }
       .nearby { margin-top: 66px; }
       .near-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
       .near-grid article { padding: 24px; background: #192629; border: 1px solid #3d5556; display: flex; align-items: start; flex-direction: column; }

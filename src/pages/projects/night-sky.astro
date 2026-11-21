@@ -108,19 +108,17 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
         landscape.clear();
         const style = landscapeStyles[locationInput.value];
         groundNote.textContent = `${skyLocations[locationInput.value][0]} · ${style.label} · illustrative`;
-        // Two full-depth silhouettes avoid horizontal bands; both stay below the level horizon.
-        function addRidge(radius: number, foreground: boolean) {
+        // A single dark silhouette keeps the lower view quiet and never masks stars.
+        function addRidge() {
           const vertices: number[] = [];
           const segments = 256;
           const edge = (index: number) => {
             const angle = index / segments * Math.PI * 2;
             const broad = Math.sin(angle * (3 + style.seed % 3) + style.seed) * 0.5;
             const detail = Math.sin(angle * (9 + style.seed) - style.seed * 2) * 0.17;
-            const height = foreground
-              ? -5.5 - style.relief * (0.5 + broad * 0.25 + detail)
-              : -0.7 - style.relief * (0.7 + broad * 0.35 + detail);
-            const x = Math.sin(angle) * radius;
-            const z = -Math.cos(angle) * radius;
+            const height = -0.15 - style.relief * (0.35 + broad * 0.2 + detail * 0.4);
+            const x = Math.sin(angle) * 91;
+            const z = -Math.cos(angle) * 91;
             return { top: [x, height, z], bottom: [x, -95, z] };
           };
           for (let i = 0; i < segments; i++) {
@@ -129,12 +127,10 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
           }
           const geometry = new THREE.BufferGeometry();
           geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-          const color = new THREE.Color(style.color);
-          if (foreground) color.multiplyScalar(0.65);
+          const color = new THREE.Color(style.color).multiplyScalar(0.65);
           landscape.add(new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide })));
         }
-        addRidge(91, false);
-        addRidge(85, true);
+        addRidge();
         landscape.visible = groundToggle.getAttribute('aria-pressed') === 'true';
         groundNote.hidden = !landscape.visible;
         requestRender();

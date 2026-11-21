@@ -144,10 +144,12 @@ const roadsUrl = base + '/data/major-roads.geojson';
       reliefPane.style.mixBlendMode = 'screen';
       const terrainRelief = L.gridLayer.relief({
         pane: 'terrain-relief', mode: 'hillshade', minZoom: 5, maxZoom: 8,
-        opacity: 0.65, hillshadeExaggeration: 1.25,
+        elevationUrl: L.GridLayer.Relief.elevationUrls.terrarium,
+        attribution: L.GridLayer.Relief.elevationAttributions.terrarium,
+        opacity: 0.38, hillshadeExaggeration: 1.1,
         // Black has no effect with screen blending; only lit slopes add a faint highlight.
         hillshadeColorFunction: intensity => {
-          const highlight = Math.round(Math.max(0, intensity - 0.52) * 210);
+          const highlight = Math.round(Math.max(0, intensity - 0.62) * 150);
           return [highlight, highlight, highlight];
         },
       });

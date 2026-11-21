@@ -48,7 +48,7 @@ const roadsUrl = base + '/data/major-roads.geojson';
           <button id="reset-extent" type="button" disabled>Reset</button>
           </div>
         </div>
-        <div class="layer-options"><span>SHOW ON MAP</span><label><input id="show-parks" type="checkbox" checked /> Park outlines</label><label><input id="show-roads" type="checkbox" checked /> Major roads</label><span class="map-hint">Drag to pan · scroll, pinch, or use + and − to zoom</span></div>
+        <div class="layer-options"><span>SHOW ON MAP</span><label title="Subtle hillshade appears when you zoom in to regional scale"><input id="show-relief" type="checkbox" /> Terrain relief</label><label><input id="show-parks" type="checkbox" checked /> Park outlines</label><label><input id="show-roads" type="checkbox" checked /> Major roads</label><span class="map-hint">Drag to pan · scroll, pinch, or use + and − to zoom</span></div>
         <div id="night-map" data-image={image} data-atlas={atlasTiles} data-parks={parkBoundariesUrl} data-roads={roadsUrl} aria-label="Modelled artificial sky brightness across Australia with selected park boundaries and major roads. Drag to pan or use the zoom buttons.">
           <img class="fallback" src={atlasPreview} alt="Coloured map of modelled artificial sky brightness across Australia" />
         </div>
@@ -67,13 +67,14 @@ const roadsUrl = base + '/data/major-roads.geojson';
       </section>
       <section class="notes">
         <h2>Reading the map</h2>
-        <p>The default map uses my original QGIS Dark Sky project: modelled artificial zenith sky brightness from the 2016 World Atlas. The source raster is about 1 km per pixel, served here as local tiles so it stays detailed while panning and zooming. Black represents near-natural modelled skies. At closer scales, selected park boundaries and a generalised major road network provide context. Park markers indicate approximate locations; the Carnarvon Gorge marker sits within the larger Carnarvon National Park. This historical model does not describe current viewing conditions.</p>
-        <p>Sky brightness data: <a href="https://doi.org/10.5880/GFZ.1.4.2016.001">Falchi et al. (2016), New World Atlas of Artificial Night Sky Brightness</a>, <a href="https://creativecommons.org/licenses/by-nc/4.0/">CC BY-NC 4.0</a>. Park boundaries: <a href="https://www.dcceew.gov.au/environment/land/nrs/science/capad">CAPAD 2024</a>, Commonwealth of Australia. Roads: <a href="https://www.naturalearthdata.com/downloads/10m-cultural-vectors/roads/">Natural Earth 1:10m</a>, public domain. Satellite option: <a href="https://science.nasa.gov/earth/earth-observatory/earth-at-night/maps/">NASA Black Marble 2016</a> via NASA GIBS. Map built with <a href="https://leafletjs.com/">Leaflet</a>.</p>
+        <p>The default map uses my original QGIS Dark Sky project: modelled artificial zenith sky brightness from the 2016 World Atlas. The source raster is about 1 km per pixel, served here as local tiles so it stays detailed while panning and zooming. Black represents near-natural modelled skies. At closer scales, selected park boundaries and a generalised major road network provide context. Optional terrain relief adds topographic shape; it does not change the sky brightness values. Park markers indicate approximate locations; the Carnarvon Gorge marker sits within the larger Carnarvon National Park. This historical model does not describe current viewing conditions.</p>
+        <p>Sky brightness data: <a href="https://doi.org/10.5880/GFZ.1.4.2016.001">Falchi et al. (2016), New World Atlas of Artificial Night Sky Brightness</a>, <a href="https://creativecommons.org/licenses/by-nc/4.0/">CC BY-NC 4.0</a>. Terrain relief: <a href="https://github.com/tilezen/joerd/blob/master/docs/attribution.md">Mapzen Elevation</a>. Park boundaries: <a href="https://www.dcceew.gov.au/environment/land/nrs/science/capad">CAPAD 2024</a>, Commonwealth of Australia. Roads: <a href="https://www.naturalearthdata.com/downloads/10m-cultural-vectors/roads/">Natural Earth 1:10m</a>, public domain. Satellite option: <a href="https://science.nasa.gov/earth/earth-observatory/earth-at-night/maps/">NASA Black Marble 2016</a> via NASA GIBS. Map built with <a href="https://leafletjs.com/">Leaflet</a>.</p>
       </section>
     </main>
     <script>
       import L from 'leaflet';
       import 'leaflet/dist/leaflet.css';
+      import 'leaflet-relief';
       import { capitals, centres, parks, type Place } from '../../data/australia-after-dark';
 
       const container = document.querySelector<HTMLElement>('#night-map')!;
@@ -81,6 +82,7 @@ const roadsUrl = base + '/data/major-roads.geojson';
       const modeButtons = document.querySelectorAll<HTMLButtonElement>('[data-mode]');
       const roadsToggle = document.querySelector<HTMLInputElement>('#show-roads')!;
       const parksToggle = document.querySelector<HTMLInputElement>('#show-parks')!;
+      const reliefToggle = document.querySelector<HTMLInputElement>('#show-relief')!;
       const viewTitle = document.querySelector<HTMLElement>('#view-title')!;
       const viewDescription = document.querySelector<HTMLElement>('#view-description')!;
       const sourceNote = document.querySelector<HTMLElement>('.source-note')!;
@@ -136,6 +138,20 @@ const roadsUrl = base + '/data/major-roads.geojson';
         attribution: 'Falchi et al. 2016 · CC BY-NC 4.0',
       }).on('load', () => container.classList.add('has-map')).addTo(map);
 
+      const reliefPane = map.createPane('terrain-relief');
+      reliefPane.style.zIndex = '300';
+      reliefPane.style.pointerEvents = 'none';
+      reliefPane.style.mixBlendMode = 'screen';
+      const terrainRelief = L.gridLayer.relief({
+        pane: 'terrain-relief', mode: 'hillshade', minZoom: 5, maxZoom: 8,
+        opacity: 0.65, hillshadeExaggeration: 1.25,
+        // Black has no effect with screen blending; only lit slopes add a faint highlight.
+        hillshadeColorFunction: intensity => {
+          const highlight = Math.round(Math.max(0, intensity - 0.52) * 210);
+          return [highlight, highlight, highlight];
+        },
+      });
+
       const detailPane = map.createPane('night-detail');
       detailPane.style.zIndex = '350';
       detailPane.style.pointerEvents = 'none';
@@ -158,6 +174,16 @@ const roadsUrl = base + '/data/major-roads.geojson';
       fetch(container.dataset.roads!).then(response => response.json()).then(data => roadsLayer.addData(data));
       fetch(container.dataset.parks!).then(response => response.json()).then(data => parkBoundaries.addData(data));
       let satellite = false;
+      function updateRelief() {
+        reliefToggle.disabled = satellite;
+        if (reliefToggle.checked && !satellite) terrainRelief.addTo(map);
+        else terrainRelief.remove();
+        sourceNote.textContent = satellite
+          ? 'Satellite night lights · NASA Black Marble 2016'
+          : reliefToggle.checked ? 'Modelled sky brightness · 2016 atlas + terrain relief at regional scale'
+          : 'Modelled sky brightness · 2016 atlas';
+      }
+      reliefToggle.addEventListener('change', updateRelief);
       modeButtons.forEach(button => button.addEventListener('click', () => {
         const nextSatellite = button.dataset.mode === 'satellite';
         if (nextSatellite === satellite) return;
@@ -174,7 +200,7 @@ const roadsUrl = base + '/data/major-roads.geojson';
           skyAtlas.addTo(map);
         }
         modeButtons.forEach(option => option.setAttribute('aria-pressed', String((option.dataset.mode === 'satellite') === satellite)));
-        sourceNote.textContent = satellite ? 'Satellite night lights · NASA Black Marble 2016' : 'Modelled sky brightness · 2016 atlas';
+        updateRelief();
       }));
 
       function placeLayer(places: Place[], kind: string, radius: number, color: string) {
@@ -258,6 +284,7 @@ const roadsUrl = base + '/data/major-roads.geojson';
       .layer-options { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; padding: 7px 16px 10px; border-top: 1px solid #344548; font-size: .82rem; }
       .layer-options > span:first-child { color: #8ea6a4; font-size: .68rem; font-weight: 700; letter-spacing: .11em; }
       .layer-options label { cursor: pointer; white-space: nowrap; }
+      .layer-options label:has(input:disabled) { opacity: .5; cursor: not-allowed; }
       .layer-options input { accent-color: #83d7df; vertical-align: middle; }
       .map-hint { margin-left: auto; color: #9bb1ae; }
       .mode-switch { display: flex; border: 1px solid #688181; border-radius: 4px; overflow: hidden; }

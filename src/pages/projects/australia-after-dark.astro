@@ -56,6 +56,19 @@ const roadsUrl = base + '/data/major-roads.geojson';
         <div class="sky-key" aria-label="Artificial sky brightness from darkest to brightest"><strong>ARTIFICIAL SKY BRIGHTNESS</strong><div class="swatches"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="key-ends"><span>Near-natural</span><span>Brightest</span></div></div>
       </section>
       <section class="view-note" aria-live="polite"><p class="eyebrow">IN VIEW</p><h2 id="view-title">Australia</h2><p id="view-description">The national view shows the broad contrast between concentrated light around population centres and the darker interior.</p><a id="sky-link" href={base + '/projects/night-sky/?location=brisbane'}>Open the 3D sky viewer →</a></section>
+      <section class="conditions" aria-labelledby="conditions-title">
+        <div class="section-heading"><div><p class="eyebrow">LIVE FORECAST + ASTRONOMY</p><h2 id="conditions-title">Tonight’s conditions</h2></div><p>Choose a guided map location or a place below. Forecast cloud cover and calculated moonlight are separate from the historical sky brightness atlas.</p></div>
+        <div class="conditions-controls">
+          <label>Place <select id="conditions-location"><option value="brisbane">Brisbane</option><option value="seq">South East Queensland</option><option value="watarrka">Watarrka NP</option><option value="carnarvon">Carnarvon Gorge</option><option value="girraween">Girraween NP</option><option value="munga">Munga-Thirri NP</option><option value="bunya">Bunya Mountains NP</option><option value="sundown">Sundown NP</option></select></label>
+          <label>Date and hour <span>Brisbane time (UTC+10)</span><input id="conditions-time" type="datetime-local" /></label>
+          <p id="sky-state" class="sky-state">Calculating sky state…</p>
+        </div>
+        <div class="condition-grid">
+          <article><span class="condition-label">FORECAST CLOUD COVER</span><strong id="cloud-value">Loading…</strong><p id="cloud-detail">Fetching hourly forecast</p></article>
+          <article><span class="condition-label">MOONLIGHT</span><strong id="moon-value">Calculating…</strong><p id="moon-detail"></p><p id="moon-rise-set" class="small-detail"></p></article>
+        </div>
+        <p class="conditions-foot"><span id="conditions-status">Loading forecast…</span> · Forecast estimates can change and are less reliable for distant dates or remote terrain. Check local weather before travelling. Open-Meteo’s free API is for non-commercial use.</p>
+      </section>
       <section class="nearby" aria-labelledby="nearby-title">
         <div class="section-heading"><div><p class="eyebrow">FROM BRISBANE</p><h2 id="nearby-title">A darker night, closer to home</h2></div><p>Three park areas to explore within roughly four hours' drive. Times are indicative, and the atlas is a historical model rather than a forecast.</p></div>
         <div class="near-grid">
@@ -68,7 +81,7 @@ const roadsUrl = base + '/data/major-roads.geojson';
       <section class="notes">
         <h2>Reading the map</h2>
         <p>The default map uses my original QGIS Dark Sky project: modelled artificial zenith sky brightness from the 2016 World Atlas. The source raster is about 1 km per pixel, served here as local tiles so it stays detailed while panning and zooming. Black represents near-natural modelled skies. At closer scales, selected park boundaries and a generalised major road network provide context. Optional terrain relief adds topographic shape; it does not change the sky brightness values. Park markers indicate approximate locations; the Carnarvon Gorge marker sits within the larger Carnarvon National Park. This historical model does not describe current viewing conditions.</p>
-        <p>Sky brightness data: <a href="https://doi.org/10.5880/GFZ.1.4.2016.001">Falchi et al. (2016), New World Atlas of Artificial Night Sky Brightness</a>, <a href="https://creativecommons.org/licenses/by-nc/4.0/">CC BY-NC 4.0</a>. Terrain relief: <a href="https://github.com/tilezen/joerd/blob/master/docs/attribution.md">Mapzen Elevation</a>. Park boundaries: <a href="https://www.dcceew.gov.au/environment/land/nrs/science/capad">CAPAD 2024</a>, Commonwealth of Australia. Roads: <a href="https://www.naturalearthdata.com/downloads/10m-cultural-vectors/roads/">Natural Earth 1:10m</a>, public domain. Satellite option: <a href="https://science.nasa.gov/earth/earth-observatory/earth-at-night/maps/">NASA Black Marble 2016</a> via NASA GIBS. Map built with <a href="https://leafletjs.com/">Leaflet</a>.</p>
+        <p>Sky brightness data: <a href="https://doi.org/10.5880/GFZ.1.4.2016.001">Falchi et al. (2016), New World Atlas of Artificial Night Sky Brightness</a>, <a href="https://creativecommons.org/licenses/by-nc/4.0/">CC BY-NC 4.0</a>. Terrain relief: <a href="https://github.com/tilezen/joerd/blob/master/docs/attribution.md">Mapzen Elevation</a>. Park boundaries: <a href="https://www.dcceew.gov.au/environment/land/nrs/science/capad">CAPAD 2024</a>, Commonwealth of Australia. Roads: <a href="https://www.naturalearthdata.com/downloads/10m-cultural-vectors/roads/">Natural Earth 1:10m</a>, public domain. Satellite option: <a href="https://science.nasa.gov/earth/earth-observatory/earth-at-night/maps/">NASA Black Marble 2016</a> via NASA GIBS. Cloud forecast: <a href="https://open-meteo.com/en/docs">Open-Meteo</a>, hourly model estimates. Moon calculations: <a href="https://github.com/cosinekitty/astronomy">Astronomy Engine</a>. Map built with <a href="https://leafletjs.com/">Leaflet</a>.</p>
       </section>
     </main>
     <script>
@@ -76,6 +89,7 @@ const roadsUrl = base + '/data/major-roads.geojson';
       import 'leaflet/dist/leaflet.css';
       import 'leaflet-relief';
       import { capitals, centres, parks, type Place } from '../../data/australia-after-dark';
+      import { initTonightConditions } from '../../scripts/tonight-conditions';
 
       const container = document.querySelector<HTMLElement>('#night-map')!;
       const reset = document.querySelector<HTMLButtonElement>('#reset-extent')!;
@@ -88,6 +102,7 @@ const roadsUrl = base + '/data/major-roads.geojson';
       const viewTitle = document.querySelector<HTMLElement>('#view-title')!;
       const viewDescription = document.querySelector<HTMLElement>('#view-description')!;
       const skyLink = document.querySelector<HTMLAnchorElement>('#sky-link')!;
+      const conditions = initTonightConditions();
       const sourceNote = document.querySelector<HTMLElement>('.source-note')!;
       const status = document.querySelector<HTMLElement>('#map-scale')!;
       const projection = L.CRS.EPSG3857;
@@ -123,6 +138,7 @@ const roadsUrl = base + '/data/major-roads.geojson';
         viewTitle.textContent = stop.title;
         viewDescription.textContent = stop.description;
         skyLink.href = `${import.meta.env.BASE_URL}projects/night-sky/?location=${id === 'australia' || id === 'seq' ? 'brisbane' : id}`;
+        conditions.selectLocation(id === 'australia' ? 'brisbane' : id);
         document.querySelectorAll<HTMLButtonElement>('.stop').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.stop === id)));
         map.flyToBounds(stop.bounds, { padding: [24, 24], maxZoom: 7.75, duration: 0.8 });
         if (document.querySelector('.nearby button[data-stop="' + id + '"]')) container.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -353,6 +369,22 @@ const roadsUrl = base + '/data/major-roads.geojson';
       .view-note h2 { margin: 4px 0 6px; }
       .view-note #view-description { margin: 0; color: #c5d1ce; max-width: 850px; }
       .view-note #sky-link { display: inline-block; margin-top: 15px; font-weight: 700; }
+      .conditions { margin-top: 28px; padding: 25px; border: 1px solid #426069; background: #172326; }
+      .conditions .section-heading { margin-bottom: 20px; }
+      .conditions .eyebrow { margin: 0; color: #83d7df; }
+      .conditions h2 { margin: 5px 0 0; }
+      .conditions-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 12px 18px; margin-bottom: 16px; }
+      .conditions-controls label { display: flex; flex-direction: column; font-size: .8rem; font-weight: 700; color: #dce5df; }
+      .conditions-controls label span { color: #91adaa; font-weight: 400; }
+      .conditions-controls select, .conditions-controls input { min-height: 42px; padding: 7px 10px; background: #23383c; color: #f0eadd; border: 1px solid #638087; border-radius: 4px; font: inherit; }
+      .sky-state { margin: 0 0 5px auto; color: #83d7df; font-size: .88rem; font-weight: 700; }
+      .condition-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+      .condition-grid article { padding: 20px; background: #0e1b20; border: 1px solid #334c50; }
+      .condition-label { display: block; color: #86d4d6; font-size: .72rem; letter-spacing: .12em; font-weight: 700; }
+      .condition-grid strong { display: block; margin: 9px 0 4px; color: #f0eadd; font: 400 clamp(1.8rem, 3vw, 2.6rem) Georgia, serif; }
+      .condition-grid p { margin: 0; color: #b8c9c5; font-size: .9rem; }
+      .condition-grid .small-detail { margin-top: 7px; color: #8fa9a6; font-size: .8rem; }
+      .conditions-foot { margin: 14px 0 0; color: #a5bcb7; font-size: .8rem; }
       .nearby { margin-top: 66px; }
       .near-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
       .near-grid article { padding: 24px; background: #192629; border: 1px solid #3d5556; display: flex; align-items: start; flex-direction: column; }
@@ -368,6 +400,8 @@ const roadsUrl = base + '/data/major-roads.geojson';
         .section-heading > p { margin-top: 8px; }
         .stop-grid { grid-template-columns: repeat(2, 1fr); }
         .near-grid { grid-template-columns: 1fr; }
+        .condition-grid { grid-template-columns: 1fr; }
+        .sky-state { margin-left: 0; width: 100%; }
         .map-hint { margin-left: 0; width: 100%; }
       }
       @media (max-width: 520px) {
@@ -378,6 +412,8 @@ const roadsUrl = base + '/data/major-roads.geojson';
         .mode-switch button { flex: 1; }
         .map-caption { display: block; }
         .source-note { padding-top: 0; }
+        .conditions { padding: 17px; }
+        .conditions-controls label, .conditions-controls select, .conditions-controls input { width: 100%; }
       }
     </style>
   </body>

@@ -213,18 +213,56 @@ const roadsUrl = base + '/data/major-roads.geojson';
         updateRelief();
       }));
 
-      function placeLayer(places: Place[], kind: string, radius: number, color: string) {
-        return L.layerGroup(places.map(([name, lat, lng]) => L.circleMarker([lat, lng], {
-          radius, color, weight: 1.5, fillOpacity: 0.85, interactive: false,
-        }).bindTooltip(name, {
-          permanent: true, direction: 'right', offset: [radius + 2, 0],
-          className: 'place-label ' + kind,
-        })));
+      const labelledMarkers: { marker: L.CircleMarker; priority: number; radius: number }[] = [];
+      function placeLayer(places: Place[], kind: string, radius: number, color: string, priority: number) {
+        return L.layerGroup(places.map(([name, lat, lng]) => {
+          const label = kind === 'park-label'
+            ? name === 'Carnarvon Gorge' ? 'Carnarvon Gorge · Carnarvon NP' : name + ' NP'
+            : name;
+          const marker = L.circleMarker([lat, lng], {
+            radius, color, weight: 1.5, fillOpacity: 0.85, interactive: false,
+          }).bindTooltip(label, {
+            permanent: true, direction: 'right', offset: [radius + 3, 0],
+            className: 'place-label ' + kind,
+          });
+          labelledMarkers.push({ marker, priority, radius });
+          return marker;
+        }));
       }
 
-      placeLayer(capitals, 'capital-label', 4, '#ffe3ac').addTo(map);
-      const regionalLayer = placeLayer(centres, 'regional-label', 3, '#a8cde4');
-      const parkLayer = placeLayer(parks, 'park-label', 4, '#87dfb6');
+      let labelFrame = 0;
+      function scheduleLabelLayout() {
+        cancelAnimationFrame(labelFrame);
+        labelFrame = requestAnimationFrame(() => {
+          const mapRect = container.getBoundingClientRect();
+          const occupied: DOMRect[] = [];
+          for (const { marker, radius } of [...labelledMarkers].sort((a, b) => a.priority - b.priority)) {
+            if (!map.hasLayer(marker)) continue;
+            const tooltip = marker.getTooltip();
+            const element = tooltip?.getElement();
+            if (!tooltip || !element) continue;
+            let placed = false;
+            for (const direction of ['right', 'left', 'top', 'bottom'] as const) {
+              tooltip.options.direction = direction;
+              tooltip.options.offset = direction === 'right' ? [radius + 3, 0]
+                : direction === 'left' ? [-radius - 3, 0]
+                : direction === 'top' ? [0, -radius - 3] : [0, radius + 3];
+              tooltip.update();
+              const box = element.getBoundingClientRect();
+              const inside = box.left >= mapRect.left + 3 && box.right <= mapRect.right - 3
+                && box.top >= mapRect.top + 3 && box.bottom <= mapRect.bottom - 3;
+              const clear = occupied.every(other => box.right + 4 < other.left || box.left - 4 > other.right
+                || box.bottom + 4 < other.top || box.top - 4 > other.bottom);
+              if (inside && clear) { occupied.push(box); placed = true; break; }
+            }
+            element.style.visibility = placed ? '' : 'hidden';
+          }
+        });
+      }
+
+      placeLayer(capitals, 'capital-label', 4, '#ffe3ac', 0).addTo(map);
+      const regionalLayer = placeLayer(centres, 'regional-label', 3, '#a8cde4', 2);
+      const parkLayer = placeLayer(parks, 'park-label', 4, '#87dfb6', 1);
       function updateLabels() {
         const zoom = map.getZoom();
         if (zoom >= 6 && roadsToggle.checked) roadsLayer.addTo(map); else roadsLayer.remove();
@@ -235,8 +273,10 @@ const roadsUrl = base + '/data/major-roads.geojson';
           ? 'Local view · selected national parks visible'
           : zoom >= 5 ? 'Regional view · zoom in for national parks'
           : 'National view · zoom in for regional centres';
+        scheduleLabelLayout();
       }
       map.on('zoomend', updateLabels);
+      map.on('moveend', scheduleLabelLayout);
       roadsToggle.addEventListener('change', updateLabels);
       parksToggle.addEventListener('change', updateLabels);
       updateLabels();

@@ -15,6 +15,8 @@ const navigate = element<HTMLAnchorElement>('#navigate');
 const copyCoordinates = element<HTMLButtonElement>('#copy-coordinates');
 const resetSuggestion = element<HTMLButtonElement>('#reset-suggestion');
 const manualButton = element<HTMLButtonElement>('#manual-point');
+const showParcels = element<HTMLInputElement>('#show-parcels');
+const parcelOverlayStatus = element<HTMLElement>('#parcel-overlay-status');
 
 const map = L.map('property-map', { zoomControl: false }).setView([-27.47, 153.02], 13);
 L.control.zoom({ position: 'topright' }).addTo(map);
@@ -34,6 +36,11 @@ let roadsLayer: L.GeoJSON | null = null;
 let destinationMarker: L.Marker | null = null;
 let gpsMarker: L.CircleMarker | null = null;
 const candidateMarkers = L.layerGroup().addTo(map);
+map.createPane('parcel-context').style.zIndex = '350';
+let surroundingParcels: L.GeoJSON | null = null;
+let parcelOverlayController: AbortController | null = null;
+let parcelOverlayTimer: ReturnType<typeof setTimeout> | null = null;
+const PARCEL_LIMIT = 750;
 const validParcels = (features: Parcel[]) => features.filter(feature =>
   feature?.properties?.lotplan && feature.geometry &&
   (feature.geometry.type === 'Polygon' || feature.geometry.type === 'MultiPolygon') &&
@@ -44,6 +51,68 @@ const validRoads = (features: Road[]) => features.filter(feature =>
   (feature.geometry.type === 'LineString' || feature.geometry.type === 'MultiLineString') &&
   feature.geometry.coordinates.length,
 );
+
+function clearSurroundingParcels() {
+  if (parcelOverlayTimer) clearTimeout(parcelOverlayTimer);
+  parcelOverlayTimer = null;
+  parcelOverlayController?.abort();
+  parcelOverlayController = null;
+  surroundingParcels?.remove();
+  surroundingParcels = null;
+}
+function scheduleSurroundingParcels() {
+  if (parcelOverlayTimer) clearTimeout(parcelOverlayTimer);
+  parcelOverlayController?.abort();
+  if (!showParcels.checked || map.getZoom() < 17) {
+    clearSurroundingParcels();
+    parcelOverlayStatus.textContent = showParcels.checked ? 'Zoom to level 17 for lot boundaries; lot numbers appear at level 18.' : 'Lot boundaries hidden.';
+    return;
+  }
+  parcelOverlayTimer = setTimeout(() => void loadSurroundingParcels(), 350);
+}
+async function loadSurroundingParcels() {
+  const controller = new AbortController();
+  parcelOverlayController = controller;
+  const bounds = map.getBounds();
+  const zoom = map.getZoom();
+  parcelOverlayStatus.textContent = 'Loading surrounding lot boundaries…';
+  try {
+    const response = await queryGeoJSON<Parcel>(PARCEL_URL, {
+      where: '1=1', geometry: [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()].join(','),
+      geometryType: 'esriGeometryEnvelope', inSR: '4326', spatialRel: 'esriSpatialRelIntersects',
+      outFields: 'lotplan,lot,plan', resultRecordCount: String(PARCEL_LIMIT),
+    }, signal(controller));
+    if (controller.signal.aborted || !showParcels.checked || map.getZoom() !== zoom) return;
+    if (response.length >= PARCEL_LIMIT) {
+      surroundingParcels?.remove();
+      surroundingParcels = null;
+      parcelOverlayStatus.textContent = 'Too many lots in view. Zoom in further to see boundaries.';
+      return;
+    }
+    let labels = 0;
+    const features = validParcels(response);
+    const overlay = L.geoJSON(features as GeoJSON.Feature[], {
+      pane: 'parcel-context',
+      style: { color: '#17637d', weight: 1.4, opacity: 0.85, fillOpacity: 0, interactive: false },
+      onEachFeature(feature, layer) {
+        if (zoom < 18 || labels >= 150 || !feature.properties?.lot) return;
+        const featureBounds = (layer as L.Polygon).getBounds();
+        const topLeft = map.latLngToContainerPoint(featureBounds.getNorthWest());
+        const bottomRight = map.latLngToContainerPoint(featureBounds.getSouthEast());
+        if (bottomRight.x - topLeft.x < 48 || bottomRight.y - topLeft.y < 25) return;
+        layer.bindTooltip(String(feature.properties.lot), { permanent: true, direction: 'center', className: 'lot-number-label', opacity: 0.95, interactive: false });
+        labels++;
+      },
+    }).addTo(map);
+    surroundingParcels?.remove();
+    surroundingParcels = overlay;
+    parcelOverlayStatus.textContent = zoom >= 18 ? `${features.length} lot outlines · ${labels} lot numbers in view` : `${features.length} lot outlines · zoom in for lot numbers`;
+  } catch (error) {
+    if (!controller.signal.aborted) parcelOverlayStatus.textContent = 'Lot boundary layer unavailable. Search and parcel selection still work.';
+  }
+}
+map.on('moveend', scheduleSurroundingParcels);
+showParcels.addEventListener('change', scheduleSurroundingParcels);
 
 function say(message: string, error = false) {
   status.textContent = message;

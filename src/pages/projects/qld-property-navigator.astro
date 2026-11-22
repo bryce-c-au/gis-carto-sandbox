@@ -23,7 +23,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
           <p class="search-help">Enter a lot/plan such as <strong>4RP102393</strong>. You can also tap a parcel on the map.</p>
         </form>
         <div id="status" class="status" role="status" aria-live="polite">Search for a lot/plan or tap the map to begin.</div>
-        <div class="parcel-controls"><label class="basemap-control" for="basemap">Basemap <select id="basemap"><option value="osm">OpenStreetMap</option><option value="imagery">Queensland imagery</option></select></label><label><input id="show-parcels" type="checkbox" checked /> Show lot boundaries at close zoom</label><label><input id="show-road-names" type="checkbox" checked /> Road names on imagery</label><span id="parcel-overlay-status" role="status" aria-live="polite">Zoom in to see surrounding lots; lot numbers appear closer in.</span><span id="road-names-status" role="status" aria-live="polite"></span></div>
+        <div class="parcel-controls"><label class="basemap-control" for="basemap">Basemap <select id="basemap"><option value="osm">OpenStreetMap</option><option value="imagery">Queensland imagery</option></select></label><label><input id="show-parcels" type="checkbox" checked /> Show lot boundaries at close zoom</label><label><input id="show-road-names" type="checkbox" checked /> Road names on imagery</label><span id="parcel-overlay-status" role="status" aria-live="polite">Zoom in to see surrounding lots; full lot/plan labels appear closer in.</span><span id="road-names-status" role="status" aria-live="polite"></span></div>
         <div id="search-results" class="results" hidden></div>
         <div id="property-map" aria-label="Interactive Queensland cadastral and road map"></div>
         <div class="map-key"><span><i class="swatch parcel"></i> Selected parcel</span><span><i class="swatch road"></i> Mapped road</span><span><i class="swatch destination"></i> Destination</span><span><i class="swatch gps"></i> Your location</span></div>
@@ -43,6 +43,9 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     </style>
     <style is:global>
       .parcel-controls{display:flex;align-items:center;gap:10px 24px;flex-wrap:wrap;padding:0 24px 12px;color:#bfd1d0;font-size:.86rem}.parcel-controls label{display:flex;align-items:center;gap:8px;cursor:pointer}.parcel-controls select{background:#293e43;border:1px solid #719198;border-radius:4px;color:#f0eadd;padding:5px 8px;font:inherit;cursor:pointer}.parcel-controls input{accent-color:#3c9fd5;width:16px;height:16px}.parcel-controls span{color:#9eb7b7}.lot-number-label{background:#112125e8;border:1px solid #c2d7d3b0;border-radius:3px;box-shadow:none;color:#f5f0e4;font:bold 11px/1.15 Arial,sans-serif;padding:2px 4px;white-space:nowrap}.lot-number-label:before{display:none}.road-reference-label{background:none;border:0;box-shadow:none;color:#fff;font:bold 12px/1.2 Arial,sans-serif;text-align:center;text-shadow:-2px -2px 2px #10232f,2px -2px 2px #10232f,-2px 2px 2px #10232f,2px 2px 2px #10232f,0 0 5px #10232f;white-space:nowrap;pointer-events:none}@media(max-width:750px){.parcel-controls{padding:0 15px 12px}}
+    </style>
+    <style is:global>
+      .candidate-list .candidate{width:100%;text-align:left;background:#112125;border:1px solid #547076;color:#f0eadd;padding:12px 14px;border-radius:4px;cursor:pointer}.candidate-list .candidate.active{border-color:#65d9a3;background:#1b3b35}.candidate-list .candidate strong,.candidate-list .candidate small{display:block}.candidate-list .candidate small{color:#b9cccc;margin-top:4px}
     </style>
   </body>
 </html>

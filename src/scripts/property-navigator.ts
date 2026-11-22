@@ -91,7 +91,7 @@ export function roadStatus(road: Road): { suitable: boolean; label: string; pena
   const category = `${p.class || ''} ${p.sub_class || ''}`.toLowerCase();
   const traffic = (p.trafficability || '').toLowerCase();
   if (/propos|unconstruct|non.operat|closed|disused/.test(operation)) return { suitable: false, label: 'Not operational or proposed', penalty: 1000 };
-  if (/restrict|private|no public|permit/.test(access) || /pedestrian|bikeway|busway|restricted/.test(category)) return { suitable: false, label: 'Access may be restricted', penalty: 1000 };
+  if (/restrict|private|no public|permit/.test(access) || /pedestrian|walkway|footpath|cycleway|bikeway|busway|restricted/.test(category)) return { suitable: false, label: 'Access may be restricted', penalty: 1000 };
   if (/no vehicle|non.vehicle|impassable/.test(traffic)) return { suitable: false, label: 'Not trafficable by vehicle', penalty: 1000 };
   const uncertain = !operation || operation.includes('unknown') || !access || access.includes('unknown') || !traffic || traffic.includes('unknown');
   return { suitable: true, label: uncertain ? 'Mapped road; vehicle access unverified' : 'Mapped operational road; entrance unverified', penalty: uncertain ? 15 : 0 };

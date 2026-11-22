@@ -34,5 +34,6 @@ test('handles multipart roads and no road geometry', () => {
 
 test('flags proposed roads and creates a coordinate destination', () => {
   assert.equal(roadStatus(road('Unbuilt', 0, { op_status_ind: 'Proposed' })).suitable, false);
+  assert.equal(roadStatus(road('Walkway', 0, { class: 'Walkway' })).suitable, false);
   assert.equal(directionsUrl([153.0692, -27.49945]), 'https://www.google.com/maps/dir/?api=1&destination=-27.499450,153.069200&travelmode=driving');
 });

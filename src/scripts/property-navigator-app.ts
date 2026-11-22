@@ -158,7 +158,7 @@ function scheduleSurroundingParcels() {
   parcelOverlayController?.abort();
   if (!showParcels.checked || map.getZoom() < 17) {
     clearSurroundingParcels();
-    parcelOverlayStatus.textContent = showParcels.checked ? 'Zoom to level 17 for lot boundaries; lot numbers appear at level 18.' : 'Lot boundaries hidden.';
+    parcelOverlayStatus.textContent = showParcels.checked ? 'Zoom to level 17 for lot boundaries; full lot/plan labels appear at level 18.' : 'Lot boundaries hidden.';
     return;
   }
   parcelOverlayTimer = setTimeout(() => void loadSurroundingParcels(), 350);
@@ -183,6 +183,7 @@ async function loadSurroundingParcels() {
       return;
     }
     let labels = 0;
+    const labelBoxes: { left: number; right: number; top: number; bottom: number }[] = [];
     const features = validParcels(response);
     const imagery = basemapSelect.value === 'imagery';
     const casing = L.geoJSON(features as GeoJSON.Feature[], {
@@ -193,18 +194,24 @@ async function loadSurroundingParcels() {
       pane: 'parcel-context',
       style: { color: imagery ? '#063247' : '#17637d', weight: imagery ? 2 : 1.4, opacity: 0.98, fillOpacity: 0, interactive: false },
       onEachFeature(feature, layer) {
-        if (zoom < 18 || labels >= 150 || !feature.properties?.lot) return;
+        const lotplan = feature.properties?.lotplan;
+        if (zoom < 18 || labels >= 150 || !lotplan) return;
         const featureBounds = (layer as L.Polygon).getBounds();
         const topLeft = map.latLngToContainerPoint(featureBounds.getNorthWest());
         const bottomRight = map.latLngToContainerPoint(featureBounds.getSouthEast());
-        if (bottomRight.x - topLeft.x < 48 || bottomRight.y - topLeft.y < 25) return;
-        layer.bindTooltip(String(feature.properties.lot), { permanent: true, direction: 'center', className: 'lot-number-label', opacity: 0.95, interactive: false });
+        const labelWidth = lotplan.length * 7 + 12;
+        if (bottomRight.x - topLeft.x < labelWidth || bottomRight.y - topLeft.y < 25) return;
+        const center = map.latLngToContainerPoint(featureBounds.getCenter());
+        const box = { left: center.x - labelWidth / 2 - 3, right: center.x + labelWidth / 2 + 3, top: center.y - 12, bottom: center.y + 12 };
+        if (labelBoxes.some(other => box.left < other.right && box.right > other.left && box.top < other.bottom && box.bottom > other.top)) return;
+        labelBoxes.push(box);
+        layer.bindTooltip(lotplan, { permanent: true, direction: 'center', className: 'lot-number-label', opacity: 0.95, interactive: false });
         labels++;
       },
     });
     surroundingParcels?.remove();
     surroundingParcels = L.layerGroup([casing, overlay]).addTo(map);
-    parcelOverlayStatus.textContent = zoom >= 18 ? `${features.length} lot outlines · ${labels} lot numbers in view` : `${features.length} lot outlines · zoom in for lot numbers`;
+    parcelOverlayStatus.textContent = zoom >= 18 ? `${features.length} lot outlines · ${labels} full lot/plan labels in view` : `${features.length} lot outlines · zoom in for lot/plan labels`;
   } catch (error) {
     if (!controller.signal.aborted) parcelOverlayStatus.textContent = 'Lot boundary layer unavailable. Search and parcel selection still work.';
   }

@@ -45,11 +45,17 @@ const shareImage = new URL(base + '/images/kings-canyon-share.jpg', shareUrl);
         <div class="image sky-image"><img src={base + '/images/night-sky-card.svg'} alt="Illustrative star field above a southern horizon" width="1200" height="750" loading="lazy" /></div>
         <div class="details"><span class="eyebrow">AUSTRALIA · NIGHT SKY</span><h2>Look Up From Here</h2><p>Choose a place and time, then explore the stars above a level horizon in a separate interactive 3D viewer.</p><span class="cta">Open sky viewer</span></div>
       </a>
+      <a class="project property-project" href={base + '/projects/qld-property-navigator/'}>
+        <div class="image property-image"><img src={base + '/images/qld-property-card.svg'} alt="Illustration of a selected property parcel and nearby road access point" width="1200" height="850" loading="lazy" /></div>
+        <div class="details"><span class="eyebrow">QUEENSLAND · FIELD TOOL</span><h2>QLD Property Navigator</h2><p>Find a lot/plan, inspect nearby mapped roads and choose a coordinate to open in Google Maps.</p><span class="cta">Open navigator</span></div>
+      </a>
     </main>
     <style>
       :global(*){box-sizing:border-box} :global(body){margin:0;background:#101719;color:#f0eadd;font-family:Inter,Arial,sans-serif} :global(a){color:inherit} main{max-width:1440px;margin:auto;padding:0 5vw 100px} header{height:88px;border-bottom:1px solid #45504d;display:flex;justify-content:space-between;align-items:center} .eyebrow{font-size:.83rem;letter-spacing:.18em;font-weight:700;color:#d6a66c}.mark{font-size:.95rem;color:#a4ada8}.intro{padding:75px 0 58px}.intro h1{font-family:Georgia,serif;font-size:clamp(3.5rem,8vw,8.5rem);line-height:.94;letter-spacing:-.05em;font-weight:400;margin:25px 0}.intro em{color:#dca66e;font-weight:400}.intro>p{max-width:660px;color:#bdc5bf;line-height:1.6;font-size:1.1rem}.project{display:grid;grid-template-columns:1.6fr 1fr;text-decoration:none;background:#1c2628;border:1px solid #4c554f;overflow:hidden}.project:hover .cta{text-decoration:underline}.image{min-height:400px;overflow:hidden;background:#050707}.image img{display:block;width:100%;height:100%;object-fit:cover;transition:transform .4s}.project:hover img{transform:scale(1.035)}.details{padding:clamp(30px,5vw,72px);display:flex;flex-direction:column;justify-content:center}.details h2{font-family:Georgia,serif;font-size:clamp(2.8rem,5vw,5rem);line-height:1;margin:22px 0;font-weight:400}.details p{color:#bdc5bf;font-size:1.1rem;line-height:1.6}.cta{margin-top:32px;color:#edc08e;font-weight:700}@media(max-width:800px){main{padding:0 20px 60px}.project{grid-template-columns:1fr}.image{min-height:250px}.details{padding:30px}.intro{padding:55px 0 35px}header{height:70px}.mark{display:none}}
       .night-project { margin-top: 28px; }
       .sky-project { margin-top: 28px; }
+      .property-project { margin-top: 28px; }
+      .property-image { background: #102126; }
       .sky-image { min-height: 500px; background: #07111f; }
       .night-image { display: flex; align-items: center; justify-content: center; background: #03040e; }
       .night-image img { width: 100%; height: auto; max-height: 100%; object-fit: contain; transform: none; }

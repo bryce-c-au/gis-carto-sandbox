@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 850" role="img" aria-label="Illustrative property parcel and nearby roads">
+  <rect width="1200" height="850" fill="#102126"/>
+  <g transform="translate(110 60) rotate(-13 490 370)" fill="none" stroke="#335052" stroke-width="3">
+    <path d="M0 140H1020M0 355H1020M0 590H1020M185 0V760M425 0V760M700 0V760M920 0V760"/>
+    <path d="M0 120H1020M0 160H1020M0 335H1020M0 375H1020M0 570H1020M0 610H1020M165 0V760M205 0V760M405 0V760M445 0V760M680 0V760M720 0V760M900 0V760M940 0V760" stroke="#b4aa88" stroke-opacity=".65"/>
+    <g stroke="#597272" stroke-width="2">
+      <path d="M240 180V320M315 180V320M490 180V320M590 180V320M750 180V320M840 180V320M240 390V550M315 390V550M490 390V550M590 390V550M750 390V550M840 390V550"/>
+      <path d="M225 250H405M445 250H680M720 250H900M225 465H405M445 465H680M720 465H900"/>
+    </g>
+    <path d="M446 376H589V465H446Z" fill="#3b9cba" fill-opacity=".48" stroke="#74dcf4" stroke-width="5"/>
+    <path d="M515 465V572" stroke="#f3c37f" stroke-width="6" stroke-dasharray="12 9"/>
+    <circle cx="515" cy="574" r="18" fill="#5bdba4" stroke="#e8fff4" stroke-width="6"/>
+  </g>
+  <rect x="62" y="52" width="270" height="54" rx="5" fill="#0d1b20" stroke="#4f7376"/>
+  <text x="86" y="88" fill="#eac38d" font-family="Arial,sans-serif" font-size="24" font-weight="700" letter-spacing="3">QLD · LOT / PLAN</text>
+  <rect x="690" y="678" width="420" height="90" rx="5" fill="#0d1b20" stroke="#4f7376"/>
+  <circle cx="723" cy="722" r="10" fill="#5bdba4"/>
+  <text x="751" y="713" fill="#f0eadd" font-family="Arial,sans-serif" font-size="27" font-weight="700">Road access point</text>
+  <text x="751" y="744" fill="#afc6c7" font-family="Arial,sans-serif" font-size="19">Review before navigating</text>
+</svg>

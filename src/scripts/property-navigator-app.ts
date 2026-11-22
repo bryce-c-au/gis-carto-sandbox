@@ -16,6 +16,7 @@ const copyCoordinates = element<HTMLButtonElement>('#copy-coordinates');
 const resetSuggestion = element<HTMLButtonElement>('#reset-suggestion');
 const manualButton = element<HTMLButtonElement>('#manual-point');
 const basemapSelect = element<HTMLSelectElement>('#basemap');
+const showRoadNames = element<HTMLInputElement>('#show-road-names');
 const showParcels = element<HTMLInputElement>('#show-parcels');
 const parcelOverlayStatus = element<HTMLElement>('#parcel-overlay-status');
 
@@ -38,6 +39,8 @@ basemapSelect.addEventListener('change', () => {
     map.removeLayer(imageryBasemap);
     osmBasemap.addTo(map);
   }
+  scheduleSurroundingParcels();
+  scheduleRoadNames();
 });
 
 let parcel: Parcel | null = null;
@@ -51,11 +54,15 @@ let roadsLayer: L.GeoJSON | null = null;
 let destinationMarker: L.Marker | null = null;
 let gpsMarker: L.CircleMarker | null = null;
 const candidateMarkers = L.layerGroup().addTo(map);
-map.createPane('parcel-context').style.zIndex = '350';
-let surroundingParcels: L.GeoJSON | null = null;
+map.createPane('parcel-casing').style.zIndex = '350';
+map.createPane('parcel-context').style.zIndex = '355';
+let surroundingParcels: L.LayerGroup | null = null;
 let parcelOverlayController: AbortController | null = null;
 let parcelOverlayTimer: ReturnType<typeof setTimeout> | null = null;
 const PARCEL_LIMIT = 750;
+const roadNameLayer = L.layerGroup().addTo(map);
+let roadNameController: AbortController | null = null;
+let roadNameTimer: ReturnType<typeof setTimeout> | null = null;
 const validParcels = (features: Parcel[]) => features.filter(feature =>
   feature?.properties?.lotplan && feature.geometry &&
   (feature.geometry.type === 'Polygon' || feature.geometry.type === 'MultiPolygon') &&
@@ -66,6 +73,77 @@ const validRoads = (features: Road[]) => features.filter(feature =>
   (feature.geometry.type === 'LineString' || feature.geometry.type === 'MultiLineString') &&
   feature.geometry.coordinates.length,
 );
+
+function scheduleRoadNames() {
+  if (roadNameTimer) clearTimeout(roadNameTimer);
+  roadNameController?.abort();
+  const roadNameStatus = element<HTMLElement>('#road-names-status');
+  if (basemapSelect.value !== 'imagery' || !showRoadNames.checked || map.getZoom() < 16) {
+    roadNameLayer.clearLayers();
+    roadNameStatus.textContent = basemapSelect.value === 'imagery' && showRoadNames.checked ? 'Zoom in for road names.' : '';
+    return;
+  }
+  roadNameTimer = setTimeout(() => void loadRoadNames(), 400);
+}
+async function loadRoadNames() {
+  const controller = new AbortController();
+  roadNameController = controller;
+  const bounds = map.getBounds();
+  const zoom = map.getZoom();
+  const roadNameStatus = element<HTMLElement>('#road-names-status');
+  try {
+    const response = await queryGeoJSON<Road>(ROAD_URL, {
+      where: "road_name_full IS NOT NULL", geometry: [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()].join(','),
+      geometryType: 'esriGeometryEnvelope', inSR: '4326', spatialRel: 'esriSpatialRelIntersects',
+      outFields: 'road_name_full,class', resultRecordCount: '1200',
+    }, signal(controller));
+    if (controller.signal.aborted || basemapSelect.value !== 'imagery' || map.getZoom() !== zoom) return;
+    roadNameLayer.clearLayers();
+    if (response.length >= 1200) { roadNameStatus.textContent = 'Zoom in further for road names.'; return; }
+    const placements: { name: string; point: L.LatLng; x: number; y: number; length: number }[] = [];
+    for (const road of validRoads(response)) {
+      const name = road.properties.road_name_full?.trim();
+      if (!name) continue;
+      const lines = road.geometry.type === 'LineString' ? [road.geometry.coordinates] : road.geometry.coordinates;
+      for (const line of lines) {
+        if (line.length < 2) continue;
+        const pixels = line.map(([longitude, latitude]) => map.latLngToContainerPoint([latitude, longitude]));
+        const lengths = pixels.slice(1).map((point, index) => point.distanceTo(pixels[index]));
+        const length = lengths.reduce((total, segment) => total + segment, 0);
+        if (length < 45) continue;
+        let remaining = length / 2;
+        for (let i = 0; i < lengths.length; i++) {
+          if (remaining > lengths[i]) { remaining -= lengths[i]; continue; }
+          const fraction = lengths[i] ? remaining / lengths[i] : 0;
+          const screen = L.point(pixels[i].x + (pixels[i + 1].x - pixels[i].x) * fraction, pixels[i].y + (pixels[i + 1].y - pixels[i].y) * fraction);
+          const midpoint = map.containerPointToLatLng(screen);
+          if (bounds.contains(midpoint)) placements.push({ name, point: midpoint, x: screen.x, y: screen.y, length });
+          break;
+        }
+      }
+    }
+    placements.sort((a, b) => b.length - a.length);
+    const used = new Set<string>();
+    const boxes: { left: number; right: number; top: number; bottom: number }[] = [];
+    for (const item of placements) {
+      if (roadNameLayer.getLayers().length >= 45) break;
+      if (used.has(item.name)) continue;
+      const width = Math.min(170, Math.max(48, item.name.length * 7));
+      const box = { left: item.x - width / 2 - 6, right: item.x + width / 2 + 6, top: item.y - 12, bottom: item.y + 12 };
+      if (boxes.some(other => box.left < other.right && box.right > other.left && box.top < other.bottom && box.bottom > other.top)) continue;
+      used.add(item.name);
+      boxes.push(box);
+      const label = document.createElement('span');
+      label.textContent = item.name;
+      L.marker(item.point, { icon: L.divIcon({ html: label, className: 'road-reference-label', iconSize: [180, 22], iconAnchor: [90, 11] }), interactive: false, keyboard: false }).addTo(roadNameLayer);
+    }
+    roadNameStatus.textContent = roadNameLayer.getLayers().length ? `${roadNameLayer.getLayers().length} road names from Queensland data` : 'No named roads visible here.';
+  } catch {
+    if (!controller.signal.aborted) roadNameStatus.textContent = 'Road name overlay unavailable.';
+  }
+}
+map.on('moveend', scheduleRoadNames);
+showRoadNames.addEventListener('change', scheduleRoadNames);
 
 function clearSurroundingParcels() {
   if (parcelOverlayTimer) clearTimeout(parcelOverlayTimer);
@@ -106,9 +184,14 @@ async function loadSurroundingParcels() {
     }
     let labels = 0;
     const features = validParcels(response);
+    const imagery = basemapSelect.value === 'imagery';
+    const casing = L.geoJSON(features as GeoJSON.Feature[], {
+      pane: 'parcel-casing',
+      style: { color: imagery ? '#fff8e8' : '#e4fbff', weight: imagery ? 4 : 2.5, opacity: imagery ? 0.95 : 0.65, fillOpacity: 0, interactive: false },
+    });
     const overlay = L.geoJSON(features as GeoJSON.Feature[], {
       pane: 'parcel-context',
-      style: { color: '#17637d', weight: 1.4, opacity: 0.85, fillOpacity: 0, interactive: false },
+      style: { color: imagery ? '#063247' : '#17637d', weight: imagery ? 2 : 1.4, opacity: 0.98, fillOpacity: 0, interactive: false },
       onEachFeature(feature, layer) {
         if (zoom < 18 || labels >= 150 || !feature.properties?.lot) return;
         const featureBounds = (layer as L.Polygon).getBounds();
@@ -118,9 +201,9 @@ async function loadSurroundingParcels() {
         layer.bindTooltip(String(feature.properties.lot), { permanent: true, direction: 'center', className: 'lot-number-label', opacity: 0.95, interactive: false });
         labels++;
       },
-    }).addTo(map);
+    });
     surroundingParcels?.remove();
-    surroundingParcels = overlay;
+    surroundingParcels = L.layerGroup([casing, overlay]).addTo(map);
     parcelOverlayStatus.textContent = zoom >= 18 ? `${features.length} lot outlines · ${labels} lot numbers in view` : `${features.length} lot outlines · zoom in for lot numbers`;
   } catch (error) {
     if (!controller.signal.aborted) parcelOverlayStatus.textContent = 'Lot boundary layer unavailable. Search and parcel selection still work.';

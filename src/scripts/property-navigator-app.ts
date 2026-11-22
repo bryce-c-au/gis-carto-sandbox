@@ -41,6 +41,7 @@ basemapSelect.addEventListener('change', () => {
   }
   scheduleSurroundingParcels();
   scheduleRoadNames();
+  schedulePlaceNames();
 });
 
 let parcel: Parcel | null = null;
@@ -63,6 +64,9 @@ const PARCEL_LIMIT = 750;
 const roadNameLayer = L.layerGroup().addTo(map);
 let roadNameController: AbortController | null = null;
 let roadNameTimer: ReturnType<typeof setTimeout> | null = null;
+const placeNameLayer = L.layerGroup().addTo(map);
+let placeNameController: AbortController | null = null;
+let placeNameTimer: ReturnType<typeof setTimeout> | null = null;
 const validParcels = (features: Parcel[]) => features.filter(feature =>
   feature?.properties?.lotplan && feature.geometry &&
   (feature.geometry.type === 'Polygon' || feature.geometry.type === 'MultiPolygon') &&
@@ -80,7 +84,7 @@ function scheduleRoadNames() {
   const roadNameStatus = element<HTMLElement>('#road-names-status');
   if (basemapSelect.value !== 'imagery' || !showRoadNames.checked || map.getZoom() < 16) {
     roadNameLayer.clearLayers();
-    roadNameStatus.textContent = basemapSelect.value === 'imagery' && showRoadNames.checked ? 'Zoom in for road names.' : '';
+    roadNameStatus.textContent = '';
     return;
   }
   roadNameTimer = setTimeout(() => void loadRoadNames(), 400);
@@ -143,7 +147,73 @@ async function loadRoadNames() {
   }
 }
 map.on('moveend', scheduleRoadNames);
-showRoadNames.addEventListener('change', scheduleRoadNames);
+showRoadNames.addEventListener('change', () => { scheduleRoadNames(); schedulePlaceNames(); });
+
+function schedulePlaceNames() {
+  if (placeNameTimer) clearTimeout(placeNameTimer);
+  placeNameController?.abort();
+  const placeStatus = element<HTMLElement>('#place-names-status');
+  if (basemapSelect.value !== 'imagery' || !showRoadNames.checked || map.getZoom() >= 16) {
+    placeNameLayer.clearLayers();
+    placeStatus.textContent = '';
+    return;
+  }
+  placeNameTimer = setTimeout(() => void loadPlaceNames(), 400);
+}
+async function loadPlaceNames() {
+  const controller = new AbortController();
+  placeNameController = controller;
+  const zoom = map.getZoom();
+  const bounds = map.getBounds();
+  const placeStatus = element<HTMLElement>('#place-names-status');
+  const geometry = [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()].join(',');
+  type Place = { name: string; latitude: number; longitude: number; population: number };
+  try {
+    let places: Place[];
+    if (zoom <= 10) {
+      const centres = await queryGeoJSON<{ geometry: { coordinates: Position }; properties: { name?: string; population?: number } }>(
+        'https://spatial-gis.information.qld.gov.au/arcgis/rest/services/Location/Places/FeatureServer/20/query',
+        { where: zoom <= 8 ? 'population >= 5000' : 'population >= 1000', geometry, geometryType: 'esriGeometryEnvelope', inSR: '4326', spatialRel: 'esriSpatialRelIntersects', outFields: 'name,population', resultRecordCount: '700' }, signal(controller),
+      );
+      if (centres.length >= 700) { placeNameLayer.clearLayers(); placeStatus.textContent = 'Zoom in for place names.'; return; }
+      places = centres.filter(feature => feature.properties?.name && feature.geometry?.coordinates?.length === 2)
+        .map(feature => ({ name: feature.properties.name!, longitude: feature.geometry.coordinates[0], latitude: feature.geometry.coordinates[1], population: feature.properties.population || 0 }))
+        .sort((a, b) => b.population - a.population);
+    } else {
+      const query = new URLSearchParams({ where: '1=1', geometry, geometryType: 'esriGeometryEnvelope', inSR: '4326', spatialRel: 'esriSpatialRelIntersects', outFields: 'locality', resultRecordCount: '700', f: 'json', outSR: '4326', returnGeometry: 'false', returnCentroid: 'true' });
+      const response = await fetch(`https://spatial-gis.information.qld.gov.au/arcgis/rest/services/Basemaps/FoundationData/FeatureServer/6/query?${query}`, { signal: signal(controller) });
+      if (!response.ok) throw new Error('Locality service unavailable.');
+      const data = await response.json();
+      if (data.error) throw new Error(data.error.message || 'Locality service unavailable.');
+      if (!Array.isArray(data.features)) throw new Error('Unexpected locality response.');
+      if (data.features.length >= 700 || data.exceededTransferLimit) { placeNameLayer.clearLayers(); placeStatus.textContent = 'Zoom in for suburb names.'; return; }
+      places = data.features.filter((feature: { attributes?: { locality?: string }; centroid?: { x: number; y: number } }) => feature.attributes?.locality && feature.centroid && Number.isFinite(feature.centroid.x) && Number.isFinite(feature.centroid.y))
+        .map((feature: { attributes: { locality: string }; centroid: { x: number; y: number } }) => ({ name: feature.attributes.locality, longitude: feature.centroid.x, latitude: feature.centroid.y, population: 0 }));
+    }
+    if (controller.signal.aborted || basemapSelect.value !== 'imagery' || !showRoadNames.checked || map.getZoom() !== zoom) return;
+    placeNameLayer.clearLayers();
+    const used = new Set<string>();
+    const boxes: { left: number; right: number; top: number; bottom: number }[] = [];
+    const size = map.getSize();
+    for (const place of places) {
+      if (placeNameLayer.getLayers().length >= 55 || used.has(place.name)) continue;
+      const point = map.latLngToContainerPoint([place.latitude, place.longitude]);
+      const width = Math.max(60, Math.min(190, place.name.length * 8 + 16));
+      const box = { left: point.x - width / 2 - 8, right: point.x + width / 2 + 8, top: point.y - 14, bottom: point.y + 14 };
+      if (box.left < 0 || box.right > size.x || box.top < 0 || box.bottom > size.y) continue;
+      if (boxes.some(other => box.left < other.right && box.right > other.left && box.top < other.bottom && box.bottom > other.top)) continue;
+      used.add(place.name);
+      boxes.push(box);
+      const label = document.createElement('span');
+      label.textContent = place.name;
+      L.marker([place.latitude, place.longitude], { icon: L.divIcon({ html: label, className: 'place-reference-label', iconSize: [width, 24], iconAnchor: [width / 2, 12] }), interactive: false, keyboard: false }).addTo(placeNameLayer);
+    }
+    placeStatus.textContent = placeNameLayer.getLayers().length ? `${placeNameLayer.getLayers().length} ${zoom <= 10 ? 'town and city' : 'suburb and locality'} names in view` : 'No place names visible here.';
+  } catch {
+    if (!controller.signal.aborted) placeStatus.textContent = 'Place names unavailable.';
+  }
+}
+map.on('moveend', schedulePlaceNames);
 
 function clearSurroundingParcels() {
   if (parcelOverlayTimer) clearTimeout(parcelOverlayTimer);

@@ -15,15 +15,30 @@ const navigate = element<HTMLAnchorElement>('#navigate');
 const copyCoordinates = element<HTMLButtonElement>('#copy-coordinates');
 const resetSuggestion = element<HTMLButtonElement>('#reset-suggestion');
 const manualButton = element<HTMLButtonElement>('#manual-point');
+const basemapSelect = element<HTMLSelectElement>('#basemap');
 const showParcels = element<HTMLInputElement>('#show-parcels');
 const parcelOverlayStatus = element<HTMLElement>('#parcel-overlay-status');
 
 const map = L.map('property-map', { zoomControl: false }).setView([-27.47, 153.02], 13);
 L.control.zoom({ position: 'topright' }).addTo(map);
-L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+const osmBasemap = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19,
   attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>',
 }).addTo(map);
+const imageryBasemap = L.tileLayer('https://spatial-img.information.qld.gov.au/arcgis/rest/services/Basemaps/LatestStateProgram_AllUsers/ImageServer/tile/{z}/{y}/{x}', {
+  maxNativeZoom: 20,
+  maxZoom: 20,
+  attribution: '<a href="https://spatial-img.information.qld.gov.au/arcgis/rest/services/Basemaps/LatestStateProgram_AllUsers/ImageServer">Queensland imagery</a> © State of Queensland; © Planet Labs Netherlands B.V.',
+});
+basemapSelect.addEventListener('change', () => {
+  if (basemapSelect.value === 'imagery') {
+    map.removeLayer(osmBasemap);
+    imageryBasemap.addTo(map);
+  } else {
+    map.removeLayer(imageryBasemap);
+    osmBasemap.addTo(map);
+  }
+});
 
 let parcel: Parcel | null = null;
 let candidates: Candidate[] = [];

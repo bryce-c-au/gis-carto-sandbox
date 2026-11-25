@@ -39,11 +39,7 @@ const shareImage = new URL(base + '/images/kings-canyon-share.jpg', shareUrl);
       </a>
       <a class="project wollumbin-project" href={base + '/projects/wollumbin/'}>
         <div class="image wollumbin-image"><img src={base + '/images/wollumbin-card.jpg'} alt="Three-dimensional satellite-textured terrain model of Wollumbin and the Tweed landscape" loading="lazy" /></div>
-        <div class="details"><span class="eyebrow">TWEED VALLEY · NEW SOUTH WALES</span><h2>Wollumbin</h2><p>Explore the mountain and its surrounding valleys in an interactive 3D terrain study.</p><span class="cta">Explore the terrain</span></div>
-      </a>
-      <a class="project lidar-project" href={base + '/projects/wollumbin-v2-test/'}>
-        <div class="image lidar-image"><img src={base + '/images/wollumbin-lidar-card.jpg'} alt="Shaded LiDAR terrain model of Wollumbin" loading="lazy" /></div>
-        <div class="details"><span class="eyebrow">TWEED VALLEY · LIDAR STUDY</span><h2>Wollumbin in detail</h2><p>Compare the mountain's LiDAR-derived terrain with the original elevation model, satellite imagery and NSW aerial imagery.</p><span class="cta">Explore the comparison</span></div>
+        <div class="details"><span class="eyebrow">TWEED VALLEY · NEW SOUTH WALES</span><h2>Wollumbin</h2><p>Explore the Tweed landscape in 3D, then compare detailed LiDAR terrain and aerial imagery.</p><span class="cta">Explore the terrain</span></div>
       </a>
       <a class="project divide-project" href={base + '/projects/great-divide/'}>
         <div class="image divide-image"><img src={base + '/images/divide-card-sharp.png'} alt="The Great Divide map in warm colours, with terrain and landmark labels" loading="lazy" /></div>
@@ -58,7 +54,7 @@ const shareImage = new URL(base + '/images/kings-canyon-share.jpg', shareUrl);
         <div class="details"><span class="eyebrow">AUSTRALIA · NIGHT SKY</span><h2>Look Up From Here</h2><p>Choose a place and time, then explore the stars above a level horizon in a separate interactive 3D viewer.</p><span class="cta">Open sky viewer</span></div>
       </a>
       <a class="project property-project" href={base + '/projects/qld-property-navigator/'}>
-        <div class="image property-image"><img src={base + '/images/qld-property-card.svg'} alt="Illustration of a selected property parcel and nearby road access point" width="1200" height="850" loading="lazy" /></div>
+        <div class="image property-image"><img src={base + '/images/qld-property-preview.jpg'} alt="Map from the property navigator showing a selected example parcel and nearby roads" width="1135" height="475" loading="lazy" /><span class="map-credit">© OpenStreetMap contributors · © State of Queensland</span></div>
         <div class="details"><span class="eyebrow">QUEENSLAND · FIELD TOOL</span><h2>QLD Property Navigator</h2><p>Find a lot/plan, inspect nearby mapped roads and choose a coordinate to open in Google Maps.</p><span class="cta">Open navigator</span></div>
       </a>
     </main>
@@ -73,7 +69,10 @@ const shareImage = new URL(base + '/images/kings-canyon-share.jpg', shareUrl);
       @media (max-width: 800px) { .divide-image { height: 300px; min-height: 0; } }
       .sky-project { margin-top: 28px; }
       .property-project { margin-top: 28px; }
-      .property-image { background: #102126; }
+      .property-image { position: relative; height: 100%; min-height: 400px; background: #102126; }
+      .property-image img { position: absolute; inset: 0; object-fit: cover; }
+      .map-credit { position: absolute; right: 8px; bottom: 8px; padding: 4px 6px; color: #152124; background: #ffffffd9; font-size: 11px; }
+      @media (max-width: 800px) { .property-image { height: 300px; min-height: 0; } }
       .sky-image { min-height: 500px; background: #07111f; }
       .night-image { display: flex; align-items: center; justify-content: center; background: #03040e; }
       .night-image img { width: 100%; height: auto; max-height: 100%; object-fit: contain; transform: none; }

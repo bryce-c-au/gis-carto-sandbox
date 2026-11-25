@@ -53,6 +53,10 @@ const shareImage = new URL(base + '/images/kings-canyon-share.jpg', shareUrl);
         <div class="image sky-image"><img src={base + '/images/night-sky-card.svg'} alt="Illustrative star field above a southern horizon" width="1200" height="750" loading="lazy" /></div>
         <div class="details"><span class="eyebrow">AUSTRALIA · NIGHT SKY</span><h2>Look Up From Here</h2><p>Choose a place and time, then explore the stars above a level horizon in a separate interactive 3D viewer.</p><span class="cta">Open sky viewer</span></div>
       </a>
+      <a class="project corridor-project" href={base + '/projects/corridor-xray/'}>
+        <div class="image corridor-image"><img src={base + '/images/corridor-xray-card.svg'} alt="Illustrated route corridor with mapped crossings" loading="lazy" /></div>
+        <div class="details"><span class="eyebrow">QUEENSLAND · GEOLIBRE TOOL</span><h2>Corridor X-Ray AU</h2><p>Explore an alignment and screen mapped crossings, terrain and nearby protected areas.</p><span class="cta">Explore the corridor</span></div>
+      </a>
       <a class="project property-project" href={base + '/projects/qld-property-navigator/'}>
         <div class="image property-image"><img src={base + '/images/qld-property-preview.jpg'} alt="Map from the property navigator showing a selected example parcel and nearby roads" width="1135" height="475" loading="lazy" /><span class="map-credit">© OpenStreetMap contributors · © State of Queensland</span></div>
         <div class="details"><span class="eyebrow">QUEENSLAND · FIELD TOOL</span><h2>QLD Property Navigator</h2><p>Find a lot/plan, inspect nearby mapped roads and choose a coordinate to open in Google Maps.</p><span class="cta">Open navigator</span></div>
@@ -70,7 +74,10 @@ const shareImage = new URL(base + '/images/kings-canyon-share.jpg', shareUrl);
       .divide-image img { position: absolute; inset: 0; object-fit: cover; object-position: center top; }
       @media (max-width: 800px) { .divide-image { height: 300px; min-height: 0; } }
       .sky-project { margin-top: 28px; }
-      .property-project { margin-top: 28px; }
+      .property-project, .corridor-project { margin-top: 28px; }
+      .corridor-image { position: relative; height: 100%; min-height: 400px; }
+      .corridor-image img { position: absolute; inset: 0; object-fit: cover; }
+      @media (max-width: 800px) { .corridor-image { height: 300px; min-height: 0; } }
       .property-image { position: relative; height: 100%; min-height: 400px; background: #102126; }
       .property-image img { position: absolute; inset: 0; object-fit: cover; }
       .map-credit { position: absolute; right: 8px; bottom: 8px; padding: 4px 6px; color: #152124; background: #ffffffd9; font-size: 11px; }

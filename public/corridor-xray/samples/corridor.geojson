@@ -1,0 +1,6 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {"type":"Feature","properties":{"name":"Demo Corridor"},"geometry":{"type":"LineString","coordinates":[[152.990,-27.515],[153.015,-27.500],[153.040,-27.490],[153.070,-27.475],[153.100,-27.460]]}}
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "id": "corridor-xray-au",
+  "name": "Corridor X-Ray AU",
+  "version": "0.3.0",
+  "entry": "dist/index.js",
+  "style": "dist/style.css",
+  "description": "Australia-focused corridor chainage, terrain and public-data screening for GeoLibre.",
+  "engines": ["maplibre", "cesium"]
+}

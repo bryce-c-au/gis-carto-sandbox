@@ -1,0 +1,14 @@
+{
+  "version": "0.1.0",
+  "name": "Corridor X-Ray AU",
+  "mapView": { "center": [153.02, -27.47], "zoom": 9, "bearing": 0, "pitch": 0 },
+  "basemapStyleUrl": "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json",
+  "basemapVisible": true,
+  "basemapOpacity": 1,
+  "layers": [],
+  "styles": {},
+  "plugins": {
+    "manifestUrls": ["https://bryce-c-au.github.io/gis-carto-sandbox/corridor-xray/plugin/plugin.json"],
+    "activePluginIds": ["corridor-xray-au"]
+  }
+}

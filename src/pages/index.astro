@@ -38,7 +38,7 @@ const shareImage = new URL(base + '/images/kings-canyon-share.jpg', shareUrl);
         <div class="details"><span class="eyebrow">WATARRKA NATIONAL PARK</span><h2>Kings Canyon</h2><p>Explore a 6 × 4 km terrain cutaway with an interactive 3D model.</p><span class="cta">Explore project</span></div>
       </a>
       <a class="project divide-project" href={base + '/projects/great-divide/'}>
-        <div class="image"><img src={base + '/images/divide-hillshade.png'} alt="Shaded relief of eastern Australia" loading="lazy" /></div>
+        <div class="image divide-image"><img src={base + '/images/divide-hillshade.png'} alt="Shaded relief of eastern Australia" loading="lazy" /></div>
         <div class="details"><span class="eyebrow">EASTERN AUSTRALIA · TERRAIN STUDY</span><h2>The Great Divide</h2><p>Explore a sculpted relief of the eastern highlands, from Queensland to the Australian Alps.</p><span class="cta">Explore the map</span></div>
       </a>
       <a class="project night-project" href={base + '/projects/australia-after-dark/'}>
@@ -57,6 +57,9 @@ const shareImage = new URL(base + '/images/kings-canyon-share.jpg', shareUrl);
     <style>
       :global(*){box-sizing:border-box} :global(body){margin:0;background:#101719;color:#f0eadd;font-family:Inter,Arial,sans-serif} :global(a){color:inherit} main{max-width:1440px;margin:auto;padding:0 5vw 100px} header{height:88px;border-bottom:1px solid #45504d;display:flex;justify-content:space-between;align-items:center} .eyebrow{font-size:.83rem;letter-spacing:.18em;font-weight:700;color:#d6a66c}.mark{font-size:.95rem;color:#a4ada8}.intro{padding:75px 0 58px}.intro h1{font-family:Georgia,serif;font-size:clamp(3.5rem,8vw,8.5rem);line-height:.94;letter-spacing:-.05em;font-weight:400;margin:25px 0}.intro em{color:#dca66e;font-weight:400}.intro>p{max-width:660px;color:#bdc5bf;line-height:1.6;font-size:1.1rem}.project{display:grid;grid-template-columns:1.6fr 1fr;text-decoration:none;background:#1c2628;border:1px solid #4c554f;overflow:hidden}.project:hover .cta{text-decoration:underline}.image{min-height:400px;overflow:hidden;background:#050707}.image img{display:block;width:100%;height:100%;object-fit:cover;transition:transform .4s}.project:hover img{transform:scale(1.035)}.details{padding:clamp(30px,5vw,72px);display:flex;flex-direction:column;justify-content:center}.details h2{font-family:Georgia,serif;font-size:clamp(2.8rem,5vw,5rem);line-height:1;margin:22px 0;font-weight:400}.details p{color:#bdc5bf;font-size:1.1rem;line-height:1.6}.cta{margin-top:32px;color:#edc08e;font-weight:700}@media(max-width:800px){main{padding:0 20px 60px}.project{grid-template-columns:1fr}.image{min-height:250px}.details{padding:30px}.intro{padding:55px 0 35px}header{height:70px}.mark{display:none}}
       .night-project, .divide-project { margin-top: 28px; }
+      .divide-image { position: relative; height: 100%; min-height: 400px; }
+      .divide-image img { position: absolute; inset: 0; }
+      @media (max-width: 800px) { .divide-image { height: 300px; min-height: 0; } }
       .sky-project { margin-top: 28px; }
       .property-project { margin-top: 28px; }
       .property-image { background: #102126; }

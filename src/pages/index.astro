@@ -26,14 +26,16 @@ const shareImage = new URL(base + '/images/kings-canyon-share.jpg', shareUrl);
     <link rel="icon" href={base + '/favicon.svg'} />
   </head>
   <body>
-    <main>
-      <header><span class="eyebrow">BRYCE CHRISTIE</span><span class="mark">Personal portfolio</span></header>
+    <main id="top">
+      <header><span class="brand">BRYCE CHRISTIE <span> / </span> GEOSPATIAL</span><a class="header-link" href="#projects">Selected work <span>↓</span></a></header>
       <section class="intro">
         <h1>Geospatial <em>sandbox</em></h1>
         <p>I'm Bryce Christie, a geospatial consultant working in GIS, spatial data engineering and automation. This is my personal space for making maps, building interactive terrain models and testing new ways to work with spatial data.</p>
         <p>I use open source tools and open data wherever practical. I build real projects with large language models (LLMs) to keep up with what they can do in GIS and see where they actually help, from writing code and automating workflows to publishing maps people can explore.</p>
       </section>
-      <a class="project" href={base + '/projects/kings-canyon/'} aria-label="Explore Kings Canyon interactive project">
+      <div class="section-heading" id="projects"><span>SELECTED WORK</span><span>MAPS · TERRAIN · TOOLS</span></div>
+      <section class="projects" aria-label="Selected projects">
+      <a class="project featured-project" href={base + '/projects/kings-canyon/'} aria-label="Explore Kings Canyon interactive project">
         <div class="image"><img src={hero} alt="Isometric cutaway rendering of Kings Canyon terrain" width="3840" height="2160" /></div>
         <div class="details"><span class="eyebrow">WATARRKA NATIONAL PARK</span><h2>Kings Canyon</h2><p>Explore a 6 × 4 km terrain cutaway with an interactive 3D model.</p><span class="cta">Explore project</span></div>
       </a>
@@ -57,6 +59,8 @@ const shareImage = new URL(base + '/images/kings-canyon-share.jpg', shareUrl);
         <div class="image property-image"><img src={base + '/images/qld-property-preview.jpg'} alt="Map from the property navigator showing a selected example parcel and nearby roads" width="1135" height="475" loading="lazy" /><span class="map-credit">© OpenStreetMap contributors · © State of Queensland</span></div>
         <div class="details"><span class="eyebrow">QUEENSLAND · FIELD TOOL</span><h2>QLD Property Navigator</h2><p>Find a lot/plan, inspect nearby mapped roads and choose a coordinate to open in Google Maps.</p><span class="cta">Open navigator</span></div>
       </a>
+      </section>
+      <footer><span>BRYCE CHRISTIE · GEOSPATIAL SANDBOX</span><a href="#top">Back to top ↑</a></footer>
     </main>
     <style>
       :global(*){box-sizing:border-box} :global(body){margin:0;background:#101719;color:#f0eadd;font-family:Inter,Arial,sans-serif} :global(a){color:inherit} main{max-width:1440px;margin:auto;padding:0 5vw 100px} header{height:88px;border-bottom:1px solid #45504d;display:flex;justify-content:space-between;align-items:center} .eyebrow{font-size:.83rem;letter-spacing:.18em;font-weight:700;color:#d6a66c}.mark{font-size:.95rem;color:#a4ada8}.intro{padding:75px 0 58px}.intro h1{font-family:Georgia,serif;font-size:clamp(3.5rem,8vw,8.5rem);line-height:.94;letter-spacing:-.05em;font-weight:400;margin:25px 0}.intro em{color:#dca66e;font-weight:400}.intro>p{max-width:660px;color:#bdc5bf;line-height:1.6;font-size:1.1rem}.project{display:grid;grid-template-columns:1.6fr 1fr;text-decoration:none;background:#1c2628;border:1px solid #4c554f;overflow:hidden}.project:hover .cta{text-decoration:underline}.image{min-height:400px;overflow:hidden;background:#050707}.image img{display:block;width:100%;height:100%;object-fit:cover;transition:transform .4s}.project:hover img{transform:scale(1.035)}.details{padding:clamp(30px,5vw,72px);display:flex;flex-direction:column;justify-content:center}.details h2{font-family:Georgia,serif;font-size:clamp(2.8rem,5vw,5rem);line-height:1;margin:22px 0;font-weight:400}.details p{color:#bdc5bf;font-size:1.1rem;line-height:1.6}.cta{margin-top:32px;color:#edc08e;font-weight:700}@media(max-width:800px){main{padding:0 20px 60px}.project{grid-template-columns:1fr}.image{min-height:250px}.details{padding:30px}.intro{padding:55px 0 35px}header{height:70px}.mark{display:none}}
@@ -80,6 +84,43 @@ const shareImage = new URL(base + '/images/kings-canyon-share.jpg', shareUrl);
       .night-image img { width: 100%; height: auto; max-height: 100%; object-fit: contain; transform: none; }
       .night-project:hover .night-image img { transform: none; }
       @media (max-width: 800px) { .night-image img { max-height: 440px; } }
+      /* A quieter, more compact portfolio grid. */
+      :global(html){scroll-behavior:smooth}
+      :global(body){background:#111918;color:#f0eadd}
+      main{max-width:1500px;padding-bottom:0}
+      header{height:82px;border-color:#34413c}
+      .brand,.header-link,.section-heading,footer{font-size:.72rem;font-weight:700;letter-spacing:.14em}
+      .brand{color:#ede8dc}.brand span{color:#c89966;margin:0 .5em}
+      .header-link{color:#b7c1b9;text-decoration:none;letter-spacing:.04em;font-weight:500}
+      .header-link span{color:#d7aa75;margin-left:.5em}.header-link:hover{color:#fff}
+      .intro{padding:clamp(70px,10vw,135px) 0 clamp(70px,9vw,120px)}
+      .intro h1{font-size:clamp(3.5rem,7vw,7.2rem);margin:0 0 32px;max-width:900px}
+      .intro>p{max-width:720px;font-size:1rem;line-height:1.75;margin:0 0 12px}
+      .section-heading{display:flex;justify-content:space-between;gap:20px;padding:18px 0;border-top:1px solid #48534a;color:#d8aa75}
+      .section-heading span:last-child{color:#8e9c93;letter-spacing:.08em;font-weight:500}
+      .projects{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
+      .project{display:flex;flex-direction:column;margin:0;min-width:0;border:1px solid #35433d;background:#182321;transition:border-color .25s,background .25s}
+      .project:hover,.project:focus-visible{border-color:#a18360;background:#1c2a26}
+      .project:focus-visible{outline:2px solid #efc18b;outline-offset:3px}
+      .project .image{position:relative;width:100%;height:auto;min-height:0;aspect-ratio:1.65;overflow:hidden}
+      .project .image img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+      .project .night-image img{object-fit:contain}
+      .project .details{padding:28px 30px 32px;display:flex;align-items:flex-start;flex:1}
+      .project .details h2{font-size:clamp(2.1rem,3vw,3.2rem);margin:14px 0 10px;line-height:1.05}
+      .project .details p{margin:0;color:#bac5bd;font-size:.98rem;line-height:1.65;max-width:520px}
+      .project .eyebrow{font-size:.69rem;letter-spacing:.15em}
+      .project .cta{margin-top:auto;padding-top:25px;font-size:.88rem}
+      .project .cta::after{content:' ↗';display:inline-block;transition:transform .2s}
+      .project:hover .cta::after{transform:translate(3px,-3px)}
+      .featured-project{grid-column:1/-1;display:grid;grid-template-columns:1.4fr 1fr}
+      .featured-project .image{height:100%;min-height:380px;aspect-ratio:auto}
+      .featured-project .details{justify-content:center;padding:clamp(35px,5vw,75px)}
+      .featured-project .details h2{font-size:clamp(2.8rem,4vw,4.7rem)}
+      .featured-project .cta{margin-top:12px}
+      footer{display:flex;justify-content:space-between;gap:20px;color:#89978e;border-top:1px solid #34413c;margin-top:85px;padding:28px 0 35px;font-size:.65rem}
+      footer a{color:#b7c1b9;text-decoration:none;letter-spacing:.02em}
+      @media(max-width:800px){main{padding:0 20px}.projects{grid-template-columns:1fr;gap:18px}.featured-project{grid-column:auto;display:flex}.featured-project .image{height:auto;min-height:0;aspect-ratio:1.65}.featured-project .details{padding:28px 30px 32px}.section-heading span:last-child{display:none}.intro{padding:65px 0 70px}.project .details h2,.featured-project .details h2{font-size:2.4rem}footer{margin-top:60px}.brand{font-size:.65rem}}
+      @media(prefers-reduced-motion:reduce){:global(html){scroll-behavior:auto}.project,.image img,.project .cta::after{transition:none}}
     </style>
   </body>
 </html>
